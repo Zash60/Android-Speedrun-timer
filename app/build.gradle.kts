@@ -10,7 +10,7 @@ android {
         minSdk = 26
         targetSdk = 34
         versionCode = 34
-        versionName = "9.0"
+        versionName = "9.1"
     }
     buildFeatures {
         viewBinding = true
@@ -28,5 +28,7 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("com.google.android.material:material:1.11.0")
     implementation("com.google.code.gson:gson:2.10.1")
-    // Sem dependência de androidx.preference
+
+    // CORREÇÃO: Readicionando a dependência necessária para PreferenceManager
+    implementation("androidx.preference:preference-ktx:1.2.1")
 }
