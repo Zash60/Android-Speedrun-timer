@@ -3,86 +3,76 @@ name: Android CI/CD Build
 
 # Gatilhos
 on:
-  # Executa em pushes e pull requests para a branch 'main'
   push:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
-
-  # Permite execução manual
   workflow_dispatch:
 
-# Permissões necessárias para o job de 'release' poder escrever no repositório
+# Permissões
 permissions:
   contents: write
 
-# Definição dos Jobs
+# Jobs
 jobs:
-  # Job principal de compilação
   build:
-    # Executa em uma máquina virtual Ubuntu mais recente
     runs-on: ubuntu-latest
-
     steps:
-      # 1. Baixa o código do repositório
-      #    Ele encontrará os arquivos do Gradle Wrapper que você enviou
+      # 1. Baixa o código do repositório (sem o gradlew)
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. Configura o ambiente Java JDK 17
-      #    Corresponde ao 'JavaVersion.VERSION_17' nos seus arquivos gradle
+      # 2. Configura o JDK 17, que é o que o projeto espera
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
-      # 3. Configura o cache do Gradle
-      #    Detecta o wrapper no seu repositório e acelera builds futuras
+      # 3. [CORREÇÃO CHAVE - Parte 1] Instala uma versão do Gradle compatível com o AGP do projeto
+      #    Isso disponibiliza o comando 'gradle' globalmente na versão 8.4.
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.4'
 
-      # 4. Garante que o script do Gradle Wrapper seja executável
-      #    É uma boa prática para garantir a permissão, especialmente em ambientes Linux
+      # 4. [CORREÇÃO CHAVE - Parte 2] Gera os arquivos do Gradle Wrapper
+      #    Este comando usa o Gradle 8.4 (instalado acima) e cria o arquivo './gradlew'.
+      - name: Generate Gradle Wrapper
+        run: gradle wrapper --gradle-version 8.4
+
+      # 5. Garante que o script do Gradle Wrapper (agora existente) seja executável
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
-      # 5. Executa a compilação usando o wrapper do projeto
-      #    A flag '--stacktrace' fornece logs de erro muito mais detalhados
+      # 6. Executa a compilação usando o wrapper recém-criado
       - name: Build with Gradle
         run: ./gradlew assembleDebug --stacktrace
 
-      # 6. Renomeia o APK para um nome mais amigável
+      # 7. Renomeia o APK para um nome mais amigável
       - name: Rename APK
         run: mv app/build/outputs/apk/debug/app-debug.apk FloatingSpeedrunTimer-debug.apk
 
-      # 7. Faz o upload do APK compilado como um "artefato" de build
-      #    Ficará disponível para download na página de resumo do workflow
+      # 8. Faz o upload do APK como um artefato
       - name: Upload APK as artifact
         uses: actions/upload-artifact@v4
         with:
           name: FloatingSpeedrunTimer-debug
           path: FloatingSpeedrunTimer-debug.apk
 
-  # Job para criar um Release no GitHub
+  # Job de Release (não precisa de alterações)
   release:
-    # Só executa este job se o gatilho foi um push de uma tag (ex: v1.0, v9.1)
     if: startsWith(github.ref, 'refs/tags/')
-    # Precisa que o job 'build' tenha sido concluído com sucesso
     needs: build
     runs-on: ubuntu-latest
     steps:
-      # 1. Baixa o APK que foi compilado e salvo como artefato no job anterior
       - name: Download APK from build job
         uses: actions/download-artifact@v4
         with:
           name: FloatingSpeedrunTimer-debug
 
-      # 2. Cria uma nova Release no GitHub e anexa o APK
       - name: Create GitHub Release and Upload APK
         uses: softprops/action-gh-release@v2
         with:
-          # Gera notas de release automaticamente com base nos commits desde a última tag
           generate_release_notes: true
-          # Lista de arquivos a serem anexados
           files: FloatingSpeedrunTimer-debug.apk
