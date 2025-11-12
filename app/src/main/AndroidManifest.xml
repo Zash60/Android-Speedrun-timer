@@ -1,0 +1,21 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <application android:allowBackup="true" android:icon="@mipmap/ic_launcher" android:label="@string/app_name" android:supportsRtl="true" android:theme="@style/Theme.App">
+        <activity android:name=".ui.MainActivity" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity android:name=".ui.CategoryActivity" android:parentActivityName=".ui.MainActivity" />
+        <activity android:name=".ui.SplitsActivity" android:parentActivityName=".ui.CategoryActivity" />
+        <activity android:name=".ui.RunHistoryActivity" android:parentActivityName=".ui.CategoryActivity" />
+        <activity android:name=".ui.SettingsActivity" android:label="Settings" android:parentActivityName=".ui.MainActivity"/>
+        <activity android:name=".ui.DialogActivity" android:theme="@style/Theme.App.Dialog" android:taskAffinity="" android:excludeFromRecents="true" />
+        <service android:name=".service.TimerService" android:foregroundServiceType="specialUse">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="This app uses a foreground service to display a persistent timer overlay for speedrunning, which requires it to be visible over other apps." />
+        </service>
+    </application>
+</manifest>
