@@ -8,14 +8,11 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.PixelFormat
-import android.graphics.Typeface
-import android.net.Uri
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.os.SystemClock
-import android.util.Log
 import android.util.TypedValue
 import android.view.*
 import android.widget.Toast
@@ -52,6 +49,13 @@ class TimerService : Service() {
     private var showDelta = true
     private var compareAgainst = "personal_best"
     private var countdownMillis = 0L
+    
+    // Cores
+    private var colorNeutral = Color.WHITE
+    private var colorAhead = Color.GREEN
+    private var colorBehind = Color.RED
+    private var colorPb = Color.CYAN
+    private var colorBestSegment = Color.YELLOW
 
     override fun onBind(intent: Intent?): IBinder? = null
     
@@ -62,18 +66,10 @@ class TimerService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
-            ACTION_CLOSE_SERVICE -> {
-                stopSelf()
-                return START_NOT_STICKY
-            }
-            ACTION_RESET_TIMER -> {
-                resetTimer()
-                return START_NOT_STICKY
-            }
+            ACTION_CLOSE_SERVICE -> { stopSelf(); return START_NOT_STICKY }
+            ACTION_RESET_TIMER -> { resetTimer(); return START_NOT_STICKY }
             ACTION_SETTINGS_UPDATED -> {
-                if (::binding.isInitialized) {
-                    loadSettings()
-                }
+                if (::binding.isInitialized) { loadSettings() }
                 return START_STICKY
             }
         }
@@ -106,12 +102,21 @@ class TimerService : Service() {
         val splitNameSizeValue = prefs.getString("split_name_size", "medium")
         val splitNameFontSize = when (splitNameSizeValue) { "small" -> 12f; "large" -> 16f; else -> 14f }
 
+        colorNeutral = prefs.getInt("color_neutral", Color.WHITE)
+        colorAhead = prefs.getInt("color_ahead", Color.GREEN)
+        colorBehind = prefs.getInt("color_behind", Color.RED)
+        colorPb = prefs.getInt("color_pb", Color.CYAN)
+        colorBestSegment = prefs.getInt("color_best_segment", Color.YELLOW)
+
         binding.timerText.setTextSize(TypedValue.COMPLEX_UNIT_SP, timerFontSize)
         binding.splitNameText.setTextSize(TypedValue.COMPLEX_UNIT_SP, splitNameFontSize)
         
         binding.deltaText.visibility = if (showDelta) View.VISIBLE else View.GONE
         binding.splitNameText.visibility = if (prefs.getBoolean("show_current_split", true)) View.VISIBLE else View.GONE
         
+        // Remove o background do timer
+        binding.timerRoot.background = null
+
         if (state == TimerState.STOPPED) {
              if (countdownMillis > 0) {
                 binding.timerText.text = "-" + TimeFormatter.formatCountdownTime(countdownMillis, prefs.getBoolean("show_milliseconds", true))
@@ -123,6 +128,7 @@ class TimerService : Service() {
                 )
             }
         }
+        updateRunningTimerColor()
     }
 
     private fun createFloatingView() {
@@ -186,29 +192,26 @@ class TimerService : Service() {
     private fun handleLongPress() {
         when (state) {
             TimerState.RUNNING, TimerState.COUNTDOWN -> resetTimer()
-            TimerState.FINISHED -> {
-                val cat = category ?: run { stopSelf(); return }
-                val isNewPb = cat.personalBest == 0L || timeInMilliseconds < cat.personalBest
-
-                if (isNewPb) {
-                    val intent = Intent(this, DialogActivity::class.java).apply {
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        putExtra("GAME_NAME", dataManager.games.find { it.categories.contains(cat) }?.name)
-                        putExtra("CATEGORY_NAME", cat.name)
-                        putExtra("NEW_TIME", timeInMilliseconds)
-                        putExtra("OLD_TIME", cat.personalBest)
-                        putExtra("SEGMENT_TIMES", currentRunSegmentTimes as Serializable)
-                    }
-                    startActivity(intent)
-                } else {
-                    Toast.makeText(this, "Run saved to history", Toast.LENGTH_SHORT).show()
-                    cat.runHistory.add(Run(timeInMilliseconds, System.currentTimeMillis(), currentRunSegmentTimes))
-                    dataManager.saveGames()
-                    resetTimer()
-                }
-            }
+            TimerState.FINISHED -> showPbDialog()
             else -> {}
         }
+    }
+
+    private fun showPbDialog() {
+        val cat = category ?: run { stopSelf(); return }
+        val isNewPb = cat.personalBest == 0L || timeInMilliseconds < cat.personalBest
+
+        // Delega a exibição do diálogo para a DialogActivity
+        val dialogIntent = Intent(this, DialogActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+            putExtra("IS_NEW_PB", isNewPb)
+            putExtra("NEW_TIME", timeInMilliseconds)
+            putExtra("OLD_TIME", cat.personalBest)
+            putExtra("GAME_NAME", dataManager.games.find { it.categories.contains(cat) }?.name)
+            putExtra("CATEGORY_NAME", cat.name)
+            putExtra("SEGMENT_TIMES", currentRunSegmentTimes as Serializable)
+        }
+        startActivity(dialogIntent)
     }
 
     private fun start() {
@@ -230,6 +233,7 @@ class TimerService : Service() {
         updateSplitName()
         binding.deltaText.text = ""
         category?.let { it.runs++; dataManager.saveGames() }
+        updateRunningTimerColor()
     }
 
     private fun split() {
@@ -255,6 +259,7 @@ class TimerService : Service() {
 
         currentSplitIndex++
         if (currentSplitIndex >= splits.size) { stopTimer() } else { updateSplitName() }
+        updateRunningTimerColor()
     }
 
     private fun stopTimer() {
@@ -267,6 +272,7 @@ class TimerService : Service() {
             if (it.personalBest > 0) { showDelta(timeInMilliseconds - it.personalBest) }
             else { binding.deltaText.text = "" }
         }
+        updateRunningTimerColor()
     }
 
     private fun resetTimer() {
@@ -290,6 +296,7 @@ class TimerService : Service() {
         currentRunSegmentTimes.clear()
         state = TimerState.STOPPED
         isGoldSplit = false
+        updateRunningTimerColor()
     }
 
     private val updateTimerThread = object : Runnable {
@@ -301,6 +308,7 @@ class TimerService : Service() {
                 showMillis = prefs.getBoolean("show_milliseconds", true),
                 alwaysShowMinutes = prefs.getBoolean("always_show_minutes", true)
             )
+            updateRunningTimerColor()
             timerHandler.postDelayed(this, 30)
         }
     }
@@ -319,6 +327,41 @@ class TimerService : Service() {
         }
     }
 
+    private fun updateRunningTimerColor() {
+        if (isGoldSplit) {
+            binding.timerText.setTextColor(colorBestSegment)
+            return
+        }
+        
+        if (state == TimerState.FINISHED) {
+             category?.let {
+                if (it.personalBest == 0L || timeInMilliseconds < it.personalBest) {
+                    binding.timerText.setTextColor(colorPb)
+                } else {
+                     binding.timerText.setTextColor(colorNeutral)
+                }
+            }
+            return
+        }
+
+        if (state != TimerState.RUNNING || splits.isEmpty() || currentSplitIndex < 0 || currentSplitIndex >= splits.size) {
+            binding.timerText.setTextColor(colorNeutral)
+            return
+        }
+
+        val comparisonTime = when (compareAgainst) {
+            "personal_best" -> splits[currentSplitIndex].personalBestTime
+            "best_segments" -> (0..currentSplitIndex).sumOf { splits[it].bestSegmentTime }
+            else -> 0L
+        }
+        
+        if (comparisonTime > 0) {
+            binding.timerText.setTextColor(if (timeInMilliseconds > comparisonTime) colorBehind else colorAhead)
+        } else {
+            binding.timerText.setTextColor(colorNeutral)
+        }
+    }
+
     private fun updateSplitName() {
         val show = PreferenceManager.getDefaultSharedPreferences(this).getBoolean("show_current_split", true)
         if (!show || state == TimerState.STOPPED) {
@@ -328,13 +371,17 @@ class TimerService : Service() {
     }
 
     private fun showDelta(delta: Long) {
-        if (!showDelta) return
+        if (!showDelta) {
+            binding.deltaText.text = ""
+            return
+        }
         val sign = if (delta >= 0) "+" else "-"
         binding.deltaText.text = sign + TimeFormatter.formatTime(
             millis = abs(delta),
             showMillis = true,
-            alwaysShowMinutes = false // Delta usually doesn't need forced minutes
+            alwaysShowMinutes = false
         )
+        binding.deltaText.setTextColor(if (delta >= 0) colorBehind else colorAhead)
     }
     
     private fun createNotificationChannel() {
@@ -344,6 +391,7 @@ class TimerService : Service() {
             val importance = NotificationManager.IMPORTANCE_DEFAULT
             val channel = NotificationChannel(CHANNEL_ID, name, importance).apply {
                 description = descriptionText
+                setSound(null, null)
             }
             val notificationManager: NotificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.createNotificationChannel(channel)
@@ -365,7 +413,12 @@ class TimerService : Service() {
         val stopIntent = Intent(this, TimerService::class.java).apply {
             action = ACTION_CLOSE_SERVICE
         }
-        return PendingIntent.getService(this, 1, stopIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        } else {
+            PendingIntent.FLAG_UPDATE_CURRENT
+        }
+        return PendingIntent.getService(this, 1, stopIntent, flags)
     }
 
     override fun onDestroy() {
