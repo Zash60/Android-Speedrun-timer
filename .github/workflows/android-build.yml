@@ -1,15 +1,12 @@
 # Nome do Workflow
-name: Android Build (Manual)
+name: Android CI/CD Build
 
 # Gatilhos
 on:
-  # [MUDANÇA] Executa apenas quando você clica no botão "Run workflow" na aba Actions
   workflow_dispatch:
-
-  # Mantém a execução automática APENAS para a criação de releases com tags
   push:
     tags:
-      - 'v*.*.*' # Executa para tags como v1.0.0, v9.1, etc.
+      - 'v*.*.*'
 
 # Permissões
 permissions:
@@ -17,38 +14,48 @@ permissions:
 
 # Jobs
 jobs:
-  # O job de 'build' permanece o mesmo
   build:
     runs-on: ubuntu-latest
     steps:
+      # 1. Baixa o código do repositório
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # 2. Configura o JDK 17
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Create Gradle init script
+      # 3. [CORREÇÃO DEFINITIVA] Cria um script de inicialização do Gradle
+      #    Este script força o Gradle a usar os repositórios corretos para TODAS as operações.
+      - name: Create Gradle init script with all repositories
         run: |
           mkdir -p ~/.gradle
-          echo "allprojects { repositories { google(); mavenCentral() } }" > ~/.gradle/init.gradle
+          echo "allprojects { repositories { google(); mavenCentral(); maven { url 'https://jitpack.io' } } }" > ~/.gradle/init.gradle
 
+      # 4. Configura o Gradle (usará o init.gradle automaticamente)
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
         with:
           gradle-version: '8.4'
 
+      # 5. Gera os arquivos do Gradle Wrapper
+      #    Este comando agora funcionará, pois o init.gradle já definiu onde encontrar os plugins.
       - name: Generate Gradle Wrapper
         run: gradle wrapper --gradle-version 8.4
 
+      # 6. Garante que o script do Gradle Wrapper seja executável
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
+      # 7. Executa a compilação usando o wrapper
+      #    O wrapper também herdará a configuração do init.gradle.
       - name: Build with Gradle
         run: ./gradlew assembleDebug --stacktrace
 
+      # 8. Renomeia e faz o upload do APK
       - name: Rename APK
         run: mv app/build/outputs/apk/debug/app-debug.apk FloatingSpeedrunTimer-debug.apk
 
@@ -58,12 +65,10 @@ jobs:
           name: FloatingSpeedrunTimer-debug
           path: FloatingSpeedrunTimer-debug.apk
 
-  # O job de 'release' agora é acionado pelo gatilho de tag
+  # Job de Release (sem alterações)
   release:
-    # A condição 'if' não é mais necessária, pois o gatilho já filtra por tags
     needs: build
     runs-on: ubuntu-latest
-    # [MUDANÇA] Executa apenas se o evento que iniciou o workflow foi um push de tag
     if: startsWith(github.ref, 'refs/tags/')
     steps:
       - name: Download APK from build job
