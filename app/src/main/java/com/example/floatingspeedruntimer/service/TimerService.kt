@@ -1,4 +1,5 @@
 package com.example.floatingspeedruntimer.service
+
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -30,28 +31,35 @@ import com.example.floatingspeedruntimer.ui.DialogActivity
 import com.example.floatingspeedruntimer.util.TimeFormatter
 import java.io.Serializable
 import kotlin.math.abs
+
 class TimerService : Service() {
     private lateinit var windowManager: WindowManager
     private lateinit var binding: TimerLayoutBinding
     private val timerHandler = Handler(Looper.getMainLooper())
     private var startTime = 0L
     private var timeInMilliseconds = 0L
+
     private lateinit var dataManager: DataManager
     private var category: Category? = null
     private var splits: List<Split> = emptyList()
     private var currentSplitIndex = -1
     private val currentRunSegmentTimes = mutableListOf<Long>()
+
     private enum class TimerState { STOPPED, COUNTDOWN, RUNNING, FINISHED }
     private var state = TimerState.STOPPED
+
     private var isGoldSplit = false
     private var showDelta = true
     private var compareAgainst = "personal_best"
     private var countdownMillis = 0L
+
     override fun onBind(intent: Intent?): IBinder? = null
+    
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
     }
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_CLOSE_SERVICE -> {
@@ -69,6 +77,7 @@ class TimerService : Service() {
                 return START_STICKY
             }
         }
+        
         if (intent?.hasExtra("GAME_NAME") == true) {
             dataManager = DataManager.getInstance(this)
             val gameName = intent.getStringExtra("GAME_NAME")
@@ -76,6 +85,7 @@ class TimerService : Service() {
             val game = dataManager.findGameByName(gameName)
             category = dataManager.findCategoryByName(game, categoryName)
             splits = category?.splits ?: emptyList()
+
             startForeground(NOTIFICATION_ID, createNotification(gameName, categoryName))
             if (!::binding.isInitialized) createFloatingView()
             loadSettings()
@@ -83,21 +93,38 @@ class TimerService : Service() {
         }
         return START_NOT_STICKY
     }
+
     private fun loadSettings() {
         val prefs = PreferenceManager.getDefaultSharedPreferences(this)
         showDelta = prefs.getBoolean("show_delta", true)
         val countdownSeconds = prefs.getString("timer_countdown", "0")?.toFloatOrNull() ?: 0f
         countdownMillis = (countdownSeconds * 1000).toLong()
+
+        val timerSizeValue = prefs.getString("timer_size", "large")
+        val timerFontSize = when (timerSizeValue) { "small" -> 26f; "medium" -> 32f; else -> 40f }
+        
+        val splitNameSizeValue = prefs.getString("split_name_size", "medium")
+        val splitNameFontSize = when (splitNameSizeValue) { "small" -> 12f; "large" -> 16f; else -> 14f }
+
+        binding.timerText.setTextSize(TypedValue.COMPLEX_UNIT_SP, timerFontSize)
+        binding.splitNameText.setTextSize(TypedValue.COMPLEX_UNIT_SP, splitNameFontSize)
+        
         binding.deltaText.visibility = if (showDelta) View.VISIBLE else View.GONE
         binding.splitNameText.visibility = if (prefs.getBoolean("show_current_split", true)) View.VISIBLE else View.GONE
+        
         if (state == TimerState.STOPPED) {
              if (countdownMillis > 0) {
                 binding.timerText.text = "-" + TimeFormatter.formatCountdownTime(countdownMillis, prefs.getBoolean("show_milliseconds", true))
             } else {
-                binding.timerText.text = TimeFormatter.formatTime(0, true)
+                binding.timerText.text = TimeFormatter.formatTime(
+                    millis = 0, 
+                    showMillis = prefs.getBoolean("show_milliseconds", true), 
+                    alwaysShowMinutes = prefs.getBoolean("always_show_minutes", true)
+                )
             }
         }
     }
+
     private fun createFloatingView() {
         binding = TimerLayoutBinding.inflate(LayoutInflater.from(this))
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
@@ -112,6 +139,7 @@ class TimerService : Service() {
         windowManager.addView(binding.root, params)
         setupTouchListener(params)
     }
+
     private fun setupTouchListener(params: WindowManager.LayoutParams) {
         binding.root.setOnClickListener { handleTap() }
         binding.root.setOnLongClickListener { handleLongPress(); true }
@@ -146,6 +174,7 @@ class TimerService : Service() {
             }
         })
     }
+
     private fun handleTap() {
         when (state) {
             TimerState.STOPPED -> start()
@@ -153,12 +182,14 @@ class TimerService : Service() {
             else -> {}
         }
     }
+
     private fun handleLongPress() {
         when (state) {
             TimerState.RUNNING, TimerState.COUNTDOWN -> resetTimer()
             TimerState.FINISHED -> {
                 val cat = category ?: run { stopSelf(); return }
                 val isNewPb = cat.personalBest == 0L || timeInMilliseconds < cat.personalBest
+
                 if (isNewPb) {
                     val intent = Intent(this, DialogActivity::class.java).apply {
                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -179,12 +210,17 @@ class TimerService : Service() {
             else -> {}
         }
     }
-    private fun start() { if (countdownMillis > 0) startCountdown() else startTimer() }
+
+    private fun start() {
+        if (countdownMillis > 0) startCountdown() else startTimer()
+    }
+
     private fun startCountdown() {
         state = TimerState.COUNTDOWN
         startTime = SystemClock.uptimeMillis() + countdownMillis
         timerHandler.post(updateCountdownThread)
     }
+
     private fun startTimer() {
         timerHandler.removeCallbacks(updateCountdownThread)
         startTime = SystemClock.uptimeMillis()
@@ -195,61 +231,80 @@ class TimerService : Service() {
         binding.deltaText.text = ""
         category?.let { it.runs++; dataManager.saveGames() }
     }
+
     private fun split() {
         if (currentSplitIndex < 0 || splits.isEmpty()) { stopTimer(); return }
         isGoldSplit = false
         val lastTotalTime = currentRunSegmentTimes.sum()
         val currentSegmentTime = timeInMilliseconds - lastTotalTime
         currentRunSegmentTimes.add(currentSegmentTime)
+
         val currentSplit = splits[currentSplitIndex]
         if (currentSplit.bestSegmentTime == 0L || currentSegmentTime < currentSplit.bestSegmentTime) {
             isGoldSplit = true
             currentSplit.bestSegmentTime = currentSegmentTime
             dataManager.saveGames()
         }
+
         val comparisonTime = when (compareAgainst) {
             "personal_best" -> currentSplit.personalBestTime
             "best_segments" -> (0..currentSplitIndex).sumOf { splits[it].bestSegmentTime }
             else -> 0L
         }
         if (comparisonTime > 0) { showDelta(timeInMilliseconds - comparisonTime) }
+
         currentSplitIndex++
         if (currentSplitIndex >= splits.size) { stopTimer() } else { updateSplitName() }
     }
+
     private fun stopTimer() {
         timerHandler.removeCallbacks(updateTimerThread)
         state = TimerState.FINISHED
         isGoldSplit = false
         if(binding.splitNameText.visibility == View.VISIBLE) binding.splitNameText.text = "Finished!"
+        
         category?.let {
             if (it.personalBest > 0) { showDelta(timeInMilliseconds - it.personalBest) }
             else { binding.deltaText.text = "" }
         }
     }
+
     private fun resetTimer() {
         timerHandler.removeCallbacks(updateTimerThread)
         timerHandler.removeCallbacks(updateCountdownThread)
         startTime = 0L; timeInMilliseconds = 0L
+        
         val prefs = PreferenceManager.getDefaultSharedPreferences(this)
         if (countdownMillis > 0) {
             binding.timerText.text = "-" + TimeFormatter.formatCountdownTime(countdownMillis, prefs.getBoolean("show_milliseconds", true))
         } else {
-            binding.timerText.text = TimeFormatter.formatTime(0, true)
+            binding.timerText.text = TimeFormatter.formatTime(
+                millis = 0,
+                showMillis = prefs.getBoolean("show_milliseconds", true),
+                alwaysShowMinutes = prefs.getBoolean("always_show_minutes", true)
+            )
         }
+        
         binding.deltaText.text = ""
         currentSplitIndex = -1; updateSplitName()
         currentRunSegmentTimes.clear()
         state = TimerState.STOPPED
         isGoldSplit = false
     }
+
     private val updateTimerThread = object : Runnable {
         override fun run() {
             timeInMilliseconds = SystemClock.uptimeMillis() - startTime
             val prefs = PreferenceManager.getDefaultSharedPreferences(this@TimerService)
-            binding.timerText.text = TimeFormatter.formatTime(timeInMilliseconds, prefs.getBoolean("show_milliseconds", true))
+            binding.timerText.text = TimeFormatter.formatTime(
+                millis = timeInMilliseconds,
+                showMillis = prefs.getBoolean("show_milliseconds", true),
+                alwaysShowMinutes = prefs.getBoolean("always_show_minutes", true)
+            )
             timerHandler.postDelayed(this, 30)
         }
     }
+
     private val updateCountdownThread = object : Runnable {
         override fun run() {
             val millisRemaining = startTime - SystemClock.uptimeMillis()
@@ -263,6 +318,7 @@ class TimerService : Service() {
             }
         }
     }
+
     private fun updateSplitName() {
         val show = PreferenceManager.getDefaultSharedPreferences(this).getBoolean("show_current_split", true)
         if (!show || state == TimerState.STOPPED) {
@@ -270,11 +326,17 @@ class TimerService : Service() {
         }
         binding.splitNameText.text = splits.getOrNull(currentSplitIndex)?.name ?: ""
     }
+
     private fun showDelta(delta: Long) {
         if (!showDelta) return
         val sign = if (delta >= 0) "+" else "-"
-        binding.deltaText.text = sign + TimeFormatter.formatTime(abs(delta), true)
+        binding.deltaText.text = sign + TimeFormatter.formatTime(
+            millis = abs(delta),
+            showMillis = true,
+            alwaysShowMinutes = false // Delta usually doesn't need forced minutes
+        )
     }
+    
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val name = "Timer Service"
@@ -287,6 +349,7 @@ class TimerService : Service() {
             notificationManager.createNotificationChannel(channel)
         }
     }
+
     private fun createNotification(gameName: String?, categoryName: String?) =
         NotificationCompat.Builder(this, CHANNEL_ID).apply {
             val pbTime = category?.personalBest?.takeIf { it > 0 }?.let { "PB: ${TimeFormatter.formatTime(it, true)}" } ?: "No PB set"
@@ -297,12 +360,14 @@ class TimerService : Service() {
             setOngoing(true)
             addAction(R.drawable.ic_close, "Close timer", getCloseServicePendingIntent())
         }.build()
+        
     private fun getCloseServicePendingIntent() : PendingIntent {
         val stopIntent = Intent(this, TimerService::class.java).apply {
             action = ACTION_CLOSE_SERVICE
         }
         return PendingIntent.getService(this, 1, stopIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
     }
+
     override fun onDestroy() {
         super.onDestroy()
         timerHandler.removeCallbacksAndMessages(null)
@@ -310,6 +375,7 @@ class TimerService : Service() {
             windowManager.removeView(binding.root)
         }
     }
+    
     companion object {
         const val CHANNEL_ID = "TimerServiceChannel"
         const val NOTIFICATION_ID = 1
