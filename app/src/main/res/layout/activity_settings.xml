@@ -4,6 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fitsSystemWindows="true">
+
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
@@ -12,75 +13,54 @@
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize" />
     </com.google.android.material.appbar.AppBarLayout>
+
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="16dp">
-            <TextView
-                style="?attr/textAppearanceTitleMedium"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="8dp"
-                android:textColor="?attr/colorPrimary"
-                android:text="Display" />
-            <com.google.android.material.materialswitch.MaterialSwitch
-                android:id="@+id/switch_show_milliseconds"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:minHeight="48dp"
-                android:text="Show milliseconds"
-                android:textAppearance="?attr/textAppearanceBodyLarge"/>
-            <com.google.android.material.materialswitch.MaterialSwitch
-                android:id="@+id/switch_show_delta"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:minHeight="48dp"
-                android:text="Show delta"
-                android:textAppearance="?attr/textAppearanceBodyLarge"/>
-            <com.google.android.material.materialswitch.MaterialSwitch
-                android:id="@+id/switch_show_current_split"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:minHeight="48dp"
-                android:text="Show current split"
-                android:textAppearance="?attr/textAppearanceBodyLarge"/>
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginTop="24dp"
-                android:layout_marginBottom="24dp"
-                android:background="?attr/colorOutline"/>
-            <TextView
-                style="?attr/textAppearanceTitleMedium"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="8dp"
-                android:textColor="?attr/colorPrimary"
-                android:text="Timing" />
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textAppearance="?attr/textAppearanceBodyLarge"
-                android:text="Countdown (seconds)"/>
-            <com.google.android.material.textfield.TextInputLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/edit_text_countdown"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:inputType="numberDecimal"
-                    android:hint="e.g., 3.5"/>
-            </com.google.android.material.textfield.TextInputLayout>
+            android:padding="16dp"
+            android:divider="@drawable/spacer_medium"
+            android:showDividers="middle">
+
+            <!-- Seção de Display -->
+            <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content">
+                <TextView style="?attr/textAppearanceTitleMedium" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="8dp" android:textColor="?attr/colorPrimary" android:text="Display" />
+                <com.google.android.material.materialswitch.MaterialSwitch android:id="@+id/switch_show_milliseconds" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp" android:text="Show milliseconds" android:textAppearance="?attr/textAppearanceBodyLarge"/>
+                <com.google.android.material.materialswitch.MaterialSwitch android:id="@+id/switch_always_show_minutes" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:minHeight="48dp" android:text="Always show minutes (0:00.00)" android:textAppearance="?attr/textAppearanceBodyLarge"/>
+                <com.google.android.material.materialswitch.MaterialSwitch android:id="@+id/switch_show_delta" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:minHeight="48dp" android:text="Show delta" android:textAppearance="?attr/textAppearanceBodyLarge"/>
+                <com.google.android.material.materialswitch.MaterialSwitch android:id="@+id/switch_show_current_split" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:minHeight="48dp" android:text="Show current split" android:textAppearance="?attr/textAppearanceBodyLarge"/>
+            </LinearLayout>
+
+            <!-- Seção de Timing -->
+            <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content">
+                <TextView style="?attr/textAppearanceTitleMedium" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="8dp" android:textColor="?attr/colorPrimary" android:text="Timing" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:textAppearance="?attr/textAppearanceBodyLarge" android:text="Countdown (seconds)"/>
+                <com.google.android.material.textfield.TextInputLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+                    <com.google.android.material.textfield.TextInputEditText android:id="@+id/edit_text_countdown" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="numberDecimal" android:hint="e.g., 3.5"/>
+                </com.google.android.material.textfield.TextInputLayout>
+            </LinearLayout>
+
+            <!-- Seção de Font Size -->
+            <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content">
+                <TextView style="?attr/textAppearanceTitleMedium" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="8dp" android:textColor="?attr/colorPrimary" android:text="Font Size" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:textAppearance="?attr/textAppearanceBodyLarge" android:text="Timer size"/>
+                <Spinner android:id="@+id/spinner_timer_size" android:layout_width="match_parent" android:layout_height="48dp"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:textAppearance="?attr/textAppearanceBodyLarge" android:text="Split name size"/>
+                <Spinner android:id="@+id/spinner_split_name_size" android:layout_width="match_parent" android:layout_height="48dp"/>
+            </LinearLayout>
+
+            <!-- Seção de Cores (simplificada) -->
+            <!-- A lógica de seleção de cor será feita no Kotlin -->
+            <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content">
+                <TextView style="?attr/textAppearanceTitleMedium" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="8dp" android:textColor="?attr/colorPrimary" android:text="Timer Colors" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Em breve: Seletor de cores visual. Por enquanto, as cores são padrão." android:textAppearance="?attr/textAppearanceBodyMedium" android:textColor="?attr/colorOnSurfaceVariant"/>
+            </LinearLayout>
+
         </LinearLayout>
     </ScrollView>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
