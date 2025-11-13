@@ -1,20 +1,23 @@
 package com.example.floatingspeedruntimer.ui
 
-import android.content.DialogInterface
+import android.app.Activity
 import android.content.Intent
 import android.content.SharedPreferences
+import android.database.Cursor
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
+import android.net.Uri
 import android.os.Bundle
+import android.provider.OpenableColumns
 import android.view.View
 import android.widget.ArrayAdapter
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.edit
 import androidx.preference.PreferenceManager
 import com.example.floatingspeedruntimer.databinding.ActivitySettingsBinding
 import com.example.floatingspeedruntimer.service.TimerService
 import com.flask.colorpicker.ColorPickerView
-import com.flask.colorpicker.OnColorSelectedListener
 import com.flask.colorpicker.builder.ColorPickerClickListener
 import com.flask.colorpicker.builder.ColorPickerDialogBuilder
 
@@ -24,6 +27,23 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var prefs: SharedPreferences
     private val timerSizeMap = mapOf("Small" to "small", "Medium" to "medium", "Large" to "large")
     private val splitNameSizeMap = mapOf("Small (12sp)" to "small", "Medium (14sp)" to "medium", "Large (16sp)" to "large")
+
+    // Lançador para o seletor de arquivos de fonte
+    private val fontPickerLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            result.data?.data?.also { uri ->
+                // Pega a permissão persistente para que o app possa ler o arquivo no futuro
+                contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+                saveFontPreference(uri)
+                updateFontSummary()
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,6 +59,7 @@ class SettingsActivity : AppCompatActivity() {
 
         setupSpinners()
         setupColorPickers()
+        setupFontPickers()
         loadSettings()
     }
 
@@ -48,13 +69,40 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private fun setupColorPickers() {
-        binding.colorPickerNeutral.setOnClickListener { openColorPicker("color_neutral", "Neutral Text Color") }
+        binding.colorPickerNeutral.setOnClickListener { openColorPicker("color_neutral", "Neutral Color") }
         binding.colorPickerAhead.setOnClickListener { openColorPicker("color_ahead", "Ahead Color") }
         binding.colorPickerBehind.setOnClickListener { openColorPicker("color_behind", "Behind Color") }
         binding.colorPickerPb.setOnClickListener { openColorPicker("color_pb", "New PB Color") }
         binding.colorPickerBestSegment.setOnClickListener { openColorPicker("color_best_segment", "Best Segment Color") }
     }
 
+    private fun setupFontPickers() {
+        binding.buttonChooseFont.setOnClickListener {
+            val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                addCategory(Intent.CATEGORY_OPENABLE)
+                type = "*/*" // Permite qualquer tipo de arquivo, mas filtramos por mime type
+                val mimeTypes = arrayOf("font/ttf", "font/otf", "application/x-font-ttf", "application/font-sfnt")
+                putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes)
+            }
+            fontPickerLauncher.launch(intent)
+        }
+
+        binding.buttonResetFont.setOnClickListener {
+            // Libera a permissão do URI antigo, se existir
+            val oldUriString = prefs.getString("custom_font_uri", null)
+            if (oldUriString != null) {
+                try {
+                    val oldUri = Uri.parse(oldUriString)
+                    contentResolver.releasePersistableUriPermission(oldUri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                } catch (e: SecurityException) {
+                    // Ignora o erro se a permissão já foi revogada
+                }
+            }
+            prefs.edit { remove("custom_font_uri") }
+            updateFontSummary()
+        }
+    }
+    
     private fun openColorPicker(key: String, title: String) {
         val defaultColor = getDefaultColor(key)
         val currentColor = prefs.getInt(key, defaultColor)
@@ -65,7 +113,7 @@ class SettingsActivity : AppCompatActivity() {
             .initialColor(currentColor)
             .wheelType(ColorPickerView.WHEEL_TYPE.FLOWER)
             .density(12)
-            .showAlphaSlider(true) // Permite ajustar a transparência
+            .showAlphaSlider(true)
             .setPositiveButton("Select", ColorPickerClickListener { dialog, selectedColor, allColors ->
                 prefs.edit { putInt(key, selectedColor) }
                 updateColorPreview(key)
@@ -93,6 +141,8 @@ class SettingsActivity : AppCompatActivity() {
         updateColorPreview("color_behind")
         updateColorPreview("color_pb")
         updateColorPreview("color_best_segment")
+        
+        updateFontSummary()
     }
 
     private fun updateColorPreview(key: String) {
@@ -115,6 +165,43 @@ class SettingsActivity : AppCompatActivity() {
         "color_pb" -> Color.CYAN
         "color_best_segment" -> Color.YELLOW
         else -> Color.BLACK
+    }
+
+    private fun saveFontPreference(uri: Uri) {
+        prefs.edit { putString("custom_font_uri", uri.toString()) }
+    }
+
+    private fun updateFontSummary() {
+        val uriString = prefs.getString("custom_font_uri", null)
+        if (uriString != null) {
+            val uri = Uri.parse(uriString)
+            binding.textFontName.text = getFileName(uri) ?: "Custom font selected"
+        } else {
+            binding.textFontName.text = "Default monospace font"
+        }
+    }
+
+    private fun getFileName(uri: Uri): String? {
+        var result: String? = null
+        if (uri.scheme == "content") {
+            val cursor: Cursor? = contentResolver.query(uri, null, null, null, null)
+            cursor.use { c ->
+                if (c != null && c.moveToFirst()) {
+                    val index = c.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                    if (index != -1) {
+                        result = c.getString(index)
+                    }
+                }
+            }
+        }
+        if (result == null) {
+            result = uri.path
+            val cut = result?.lastIndexOf('/')
+            if (cut != null && cut != -1) {
+                result = result?.substring(cut + 1)
+            }
+        }
+        return result
     }
 
     private fun saveSettings() {
