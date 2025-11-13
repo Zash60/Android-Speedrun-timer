@@ -1,4 +1,5 @@
 package com.example.floatingspeedruntimer.ui
+
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -6,6 +7,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.view.LayoutInflater
 import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -17,22 +19,28 @@ import com.example.floatingspeedruntimer.data.Category
 import com.example.floatingspeedruntimer.data.DataManager
 import com.example.floatingspeedruntimer.data.Game
 import com.example.floatingspeedruntimer.databinding.ActivityListLayoutBinding
+import com.example.floatingspeedruntimer.databinding.BottomSheetCategoryMenuBinding
 import com.example.floatingspeedruntimer.databinding.DialogAddEditBinding
 import com.example.floatingspeedruntimer.service.TimerService
+import com.google.android.material.bottomsheet.BottomSheetDialog
+
 class CategoryActivity : AppCompatActivity() {
+
     private lateinit var binding: ActivityListLayoutBinding
     private lateinit var dataManager: DataManager
     private lateinit var categoryAdapter: CategoryAdapter
     private var game: Game? = null
     private var pendingCategoryForTimer: Category? = null
+
     private val notificationPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
         if (isGranted) {
             checkOverlayPermissionAndStartTimer()
         } else {
             Toast.makeText(this, "Notification permission is needed for the 'Close' button.", Toast.LENGTH_LONG).show()
-            checkOverlayPermissionAndStartTimer()
+            checkOverlayPermissionAndStartTimer() // Proceed anyway
         }
     }
+
     private val overlayPermissionLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && Settings.canDrawOverlays(this)) {
             pendingCategoryForTimer?.let { startTimerService(it) }
@@ -41,21 +49,27 @@ class CategoryActivity : AppCompatActivity() {
         }
         pendingCategoryForTimer = null
     }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityListLayoutBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        
         dataManager = DataManager.getInstance(this)
         val gameName = intent.getStringExtra("GAME_NAME")
         game = dataManager.findGameByName(gameName)
+
         if (game == null) {
             finish()
             return
         }
+
         setupToolbar()
         setupRecyclerView()
+
         binding.fab.setOnClickListener { showAddEditDialog(null) }
     }
+
     override fun onResume() {
         super.onResume()
         game?.let {
@@ -63,48 +77,64 @@ class CategoryActivity : AppCompatActivity() {
             updateEmptyView()
         }
     }
+    
     private fun setupToolbar() {
         setSupportActionBar(binding.toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.title = game?.name
         binding.toolbar.setNavigationOnClickListener { onBackPressedDispatcher.onBackPressed() }
     }
+
     private fun setupRecyclerView() {
         categoryAdapter = CategoryAdapter(game!!.categories, object : CategoryAdapter.CategoryClickListener {
             override fun onPlayClick(category: Category) {
                 pendingCategoryForTimer = category
                 checkNotificationPermission()
             }
-            override fun onCategoryClick(category: Category) { onCategoryLongClick(category) }
+            override fun onCategoryClick(category: Category) {
+                showCategoryMenu(category)
+            }
         })
         binding.recyclerView.apply {
             layoutManager = LinearLayoutManager(this@CategoryActivity)
             adapter = categoryAdapter
         }
     }
-    private fun onCategoryLongClick(category: Category) {
-        val items = arrayOf("Edit Splits", "View History", "Edit Name", "Delete")
-        AlertDialog.Builder(this)
-            .setTitle(category.name)
-            .setItems(items) { _, which ->
-                when (which) {
-                    0 -> {
-                        val intent = Intent(this, SplitsActivity::class.java)
-                        intent.putExtra("GAME_NAME", game!!.name)
-                        intent.putExtra("CATEGORY_NAME", category.name)
-                        startActivity(intent)
-                    }
-                    1 -> {
-                        val intent = Intent(this, RunHistoryActivity::class.java)
-                        intent.putExtra("GAME_NAME", game!!.name)
-                        intent.putExtra("CATEGORY_NAME", category.name)
-                        startActivity(intent)
-                    }
-                    2 -> showAddEditDialog(category)
-                    3 -> showDeleteConfirmationDialog(category)
-                }
-            }.show()
+    
+    private fun showCategoryMenu(category: Category) {
+        val dialog = BottomSheetDialog(this)
+        val sheetBinding = BottomSheetCategoryMenuBinding.inflate(LayoutInflater.from(this))
+        dialog.setContentView(sheetBinding.root)
+
+        sheetBinding.bottomSheetTitle.text = category.name
+
+        sheetBinding.optionEditSplits.setOnClickListener {
+            val intent = Intent(this, SplitsActivity::class.java).apply {
+                putExtra("GAME_NAME", game!!.name)
+                putExtra("CATEGORY_NAME", category.name)
+            }
+            startActivity(intent)
+            dialog.dismiss()
+        }
+        sheetBinding.optionViewHistory.setOnClickListener {
+            val intent = Intent(this, RunHistoryActivity::class.java).apply {
+                putExtra("GAME_NAME", game!!.name)
+                putExtra("CATEGORY_NAME", category.name)
+            }
+            startActivity(intent)
+            dialog.dismiss()
+        }
+        sheetBinding.optionEditName.setOnClickListener {
+            showAddEditDialog(category)
+            dialog.dismiss()
+        }
+        sheetBinding.optionDelete.setOnClickListener {
+            showDeleteConfirmationDialog(category)
+            dialog.dismiss()
+        }
+        dialog.show()
     }
+
     private fun checkNotificationPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             when {
@@ -119,11 +149,13 @@ class CategoryActivity : AppCompatActivity() {
                 }
             }
         } else {
-            checkOverlayPermissionAndStartTimer()
+            checkOverlayPermissionAndStartTimer() // No runtime permission needed for older versions
         }
     }
+
     private fun checkOverlayPermissionAndStartTimer() {
         if (pendingCategoryForTimer == null) return
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
              AlertDialog.Builder(this)
                 .setTitle("Permission Needed")
@@ -138,6 +170,7 @@ class CategoryActivity : AppCompatActivity() {
             startTimerService(pendingCategoryForTimer!!)
         }
     }
+    
     private fun startTimerService(category: Category) {
         val intent = Intent(this, TimerService::class.java).apply {
             putExtra("GAME_NAME", game!!.name)
@@ -146,12 +179,14 @@ class CategoryActivity : AppCompatActivity() {
         startService(intent)
         finishAffinity()
     }
+
     private fun showAddEditDialog(category: Category?) {
         val dialogBinding = DialogAddEditBinding.inflate(layoutInflater)
         val isEditing = category != null
         if (isEditing) {
             dialogBinding.editText.setText(category!!.name)
         }
+
         AlertDialog.Builder(this)
             .setTitle(if (isEditing) "Edit Category" else "Add Category")
             .setView(dialogBinding.root)
@@ -171,6 +206,7 @@ class CategoryActivity : AppCompatActivity() {
             .setNegativeButton("Cancel", null)
             .show()
     }
+
     private fun showDeleteConfirmationDialog(category: Category) {
         AlertDialog.Builder(this)
             .setTitle("Delete Category")
@@ -184,6 +220,7 @@ class CategoryActivity : AppCompatActivity() {
             .setNegativeButton("Cancel", null)
             .show()
     }
+
     private fun updateEmptyView() {
         if (game!!.categories.isEmpty()) {
             binding.recyclerView.visibility = View.GONE
