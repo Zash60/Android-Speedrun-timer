@@ -1,3 +1,5 @@
+// NENHUM BLOCO 'repositories {}' DEVE ESTAR AQUI
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -10,7 +12,7 @@ android {
         minSdk = 26
         targetSdk = 34
         versionCode = 34
-        versionName = "9.2" // Incrementando a versão
+        versionName = "9.3" // Incrementando a versão
     }
     buildFeatures {
         viewBinding = true
@@ -29,7 +31,7 @@ dependencies {
     implementation("com.google.android.material:material:1.11.0")
     implementation("com.google.code.gson:gson:2.10.1")
     implementation("androidx.preference:preference-ktx:1.2.1")
-
-    // CORREÇÃO: Voltando para a biblioteca de seletor de cores original e funcional
+    
+    // Esta dependência agora será encontrada via JitPack
     implementation("com.github.QuadFlask:colorpicker:0.0.13")
 }
