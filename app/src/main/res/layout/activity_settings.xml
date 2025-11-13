@@ -60,7 +60,7 @@
                 
                 <!-- Item de Cor -->
                 <RelativeLayout android:id="@+id/color_picker_neutral" android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingVertical="8dp" android:background="?attr/selectableItemBackground" android:clickable="true">
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Neutral Text" android:textAppearance="?attr/textAppearanceBodyLarge" android:layout_centerVertical="true"/>
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Neutral" android:textAppearance="?attr/textAppearanceBodyLarge" android:layout_centerVertical="true"/>
                     <View android:id="@+id/color_preview_neutral" android:layout_width="28dp" android:layout_height="28dp" android:layout_alignParentEnd="true" android:layout_centerVertical="true"/>
                 </RelativeLayout>
                 
