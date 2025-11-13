@@ -10,11 +10,11 @@ pluginManagement {
 
 dependencyResolutionManagement {
     // Esta configuração se aplica a todos os projetos e subprojetos (como :app)
+    // É a ÚNICA fonte de verdade para repositórios de dependências.
     repositories {
         google()
         mavenCentral()
-        // Adicionando jitpack aqui, que estava faltando no seu original,
-        // caso alguma dependência futura precise dele.
+        // CORREÇÃO: Adicionando o repositório JitPack, necessário para a biblioteca colorpicker
         maven { url = uri("https://jitpack.io") }
     }
 }
