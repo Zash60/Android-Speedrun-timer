@@ -1,6 +1,7 @@
 package com.example.floatingspeedruntimer.ui
 
 import android.content.Intent
+import android.os.Build // <-- IMPORTAÇÃO CORRIGIDA AQUI
 import android.os.Bundle
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -84,6 +85,7 @@ class DialogActivity : AppCompatActivity() {
     }
 
     private fun <T : Serializable?> getSerializable(intent: Intent, key: String, clazz: Class<T>): T? {
+        // A verificação de versão do SDK agora funciona porque 'Build' foi importado
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             intent.getSerializableExtra(key, clazz)
         } else {
