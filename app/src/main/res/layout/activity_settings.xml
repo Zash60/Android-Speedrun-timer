@@ -29,60 +29,92 @@
 
             <!-- Seção de Display -->
             <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content">
-                <TextView style="?attr/textAppearanceTitleMedium" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="8dp" android:textColor="?attr/colorPrimary" android:text="Display" />
-                <com.google.android.material.materialswitch.MaterialSwitch android:id="@+id/switch_show_milliseconds" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp" android:text="Show milliseconds" android:textAppearance="?attr/textAppearanceBodyLarge"/>
-                <com.google.android.material.materialswitch.MaterialSwitch android:id="@+id/switch_always_show_minutes" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:minHeight="48dp" android:text="Always show minutes (0:00.00)" android:textAppearance="?attr/textAppearanceBodyLarge"/>
-                <com.google.android.material.materialswitch.MaterialSwitch android:id="@+id/switch_show_delta" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:minHeight="48dp" android:text="Show delta" android:textAppearance="?attr/textAppearanceBodyLarge"/>
-                <com.google.android.material.materialswitch.MaterialSwitch android:id="@+id/switch_show_current_split" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:minHeight="48dp" android:text="Show current split" android:textAppearance="?attr/textAppearanceBodyLarge"/>
+                <TextView style="?attr/textAppearanceTitleMedium" android:text="Display" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="8dp" android:textColor="?attr/colorPrimary"/>
+                <com.google.android.material.materialswitch.MaterialSwitch android:id="@+id/switch_show_milliseconds" android:text="Show milliseconds" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp" android:textAppearance="?attr/textAppearanceBodyLarge"/>
+                <com.google.android.material.materialswitch.MaterialSwitch android:id="@+id/switch_always_show_minutes" android:text="Always show minutes (0:00.00)" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:minHeight="48dp" android:textAppearance="?attr/textAppearanceBodyLarge"/>
+                <com.google.android.material.materialswitch.MaterialSwitch android:id="@+id/switch_show_delta" android:text="Show delta" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:minHeight="48dp" android:textAppearance="?attr/textAppearanceBodyLarge"/>
+                <com.google.android.material.materialswitch.MaterialSwitch android:id="@+id/switch_show_current_split" android:text="Show current split" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:minHeight="48dp" android:textAppearance="?attr/textAppearanceBodyLarge"/>
             </LinearLayout>
 
             <!-- Seção de Timing -->
             <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content">
-                <TextView style="?attr/textAppearanceTitleMedium" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="8dp" android:textColor="?attr/colorPrimary" android:text="Timing" />
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:textAppearance="?attr/textAppearanceBodyLarge" android:text="Countdown (seconds)"/>
+                <TextView style="?attr/textAppearanceTitleMedium" android:text="Timing" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="8dp" android:textColor="?attr/colorPrimary"/>
+                <TextView android:text="Countdown (seconds)" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textAppearance="?attr/textAppearanceBodyLarge"/>
                 <com.google.android.material.textfield.TextInputLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
-                    <com.google.android.material.textfield.TextInputEditText android:id="@+id/edit_text_countdown" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="numberDecimal" android:hint="e.g., 3.5"/>
+                    <com.google.android.material.textfield.TextInputEditText android:id="@+id/edit_text_countdown" android:hint="e.g., 3.5" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="numberDecimal"/>
                 </com.google.android.material.textfield.TextInputLayout>
             </LinearLayout>
 
             <!-- Seção de Font Size -->
             <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content">
-                <TextView style="?attr/textAppearanceTitleMedium" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="8dp" android:textColor="?attr/colorPrimary" android:text="Font Size" />
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:textAppearance="?attr/textAppearanceBodyLarge" android:text="Timer size"/>
+                <TextView style="?attr/textAppearanceTitleMedium" android:text="Font Size" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="8dp" android:textColor="?attr/colorPrimary"/>
+                <TextView android:text="Timer size" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textAppearance="?attr/textAppearanceBodyLarge"/>
                 <Spinner android:id="@+id/spinner_timer_size" android:layout_width="match_parent" android:layout_height="48dp"/>
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:textAppearance="?attr/textAppearanceBodyLarge" android:text="Split name size"/>
+                <TextView android:text="Split name size" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:textAppearance="?attr/textAppearanceBodyLarge"/>
                 <Spinner android:id="@+id/spinner_split_name_size" android:layout_width="match_parent" android:layout_height="48dp"/>
             </LinearLayout>
             
-            <!-- NOVA Seção de Cores -->
+            <!-- Seção de Cores -->
             <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content">
-                <TextView style="?attr/textAppearanceTitleMedium" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="16dp" android:textColor="?attr/colorPrimary" android:text="Timer Colors" />
-                
-                <!-- Item de Cor -->
-                <RelativeLayout android:id="@+id/color_picker_neutral" android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingVertical="8dp" android:background="?attr/selectableItemBackground" android:clickable="true">
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Neutral" android:textAppearance="?attr/textAppearanceBodyLarge" android:layout_centerVertical="true"/>
+                <TextView style="?attr/textAppearanceTitleMedium" android:text="Timer Colors" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="16dp" android:textColor="?attr/colorPrimary"/>
+                <RelativeLayout android:id="@+id/color_picker_neutral" android:background="?attr/selectableItemBackground" android:clickable="true" android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingVertical="8dp">
+                    <TextView android:text="Neutral" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textAppearance="?attr/textAppearanceBodyLarge" android:layout_centerVertical="true"/>
                     <View android:id="@+id/color_preview_neutral" android:layout_width="28dp" android:layout_height="28dp" android:layout_alignParentEnd="true" android:layout_centerVertical="true"/>
                 </RelativeLayout>
-                
-                <RelativeLayout android:id="@+id/color_picker_ahead" android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingVertical="8dp" android:layout_marginTop="8dp" android:background="?attr/selectableItemBackground" android:clickable="true">
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Ahead" android:textAppearance="?attr/textAppearanceBodyLarge" android:layout_centerVertical="true"/>
+                <RelativeLayout android:id="@+id/color_picker_ahead" android:background="?attr/selectableItemBackground" android:clickable="true" android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingVertical="8dp" android:layout_marginTop="8dp">
+                    <TextView android:text="Ahead" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textAppearance="?attr/textAppearanceBodyLarge" android:layout_centerVertical="true"/>
                     <View android:id="@+id/color_preview_ahead" android:layout_width="28dp" android:layout_height="28dp" android:layout_alignParentEnd="true" android:layout_centerVertical="true"/>
                 </RelativeLayout>
-
-                <RelativeLayout android:id="@+id/color_picker_behind" android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingVertical="8dp" android:layout_marginTop="8dp" android:background="?attr/selectableItemBackground" android:clickable="true">
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Behind" android:textAppearance="?attr/textAppearanceBodyLarge" android:layout_centerVertical="true"/>
+                <RelativeLayout android:id="@+id/color_picker_behind" android:background="?attr/selectableItemBackground" android:clickable="true" android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingVertical="8dp" android:layout_marginTop="8dp">
+                    <TextView android:text="Behind" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textAppearance="?attr/textAppearanceBodyLarge" android:layout_centerVertical="true"/>
                     <View android:id="@+id/color_preview_behind" android:layout_width="28dp" android:layout_height="28dp" android:layout_alignParentEnd="true" android:layout_centerVertical="true"/>
                 </RelativeLayout>
-
-                <RelativeLayout android:id="@+id/color_picker_pb" android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingVertical="8dp" android:layout_marginTop="8dp" android:background="?attr/selectableItemBackground" android:clickable="true">
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="New PB" android:textAppearance="?attr/textAppearanceBodyLarge" android:layout_centerVertical="true"/>
+                <RelativeLayout android:id="@+id/color_picker_pb" android:background="?attr/selectableItemBackground" android:clickable="true" android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingVertical="8dp" android:layout_marginTop="8dp">
+                    <TextView android:text="New PB" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textAppearance="?attr/textAppearanceBodyLarge" android:layout_centerVertical="true"/>
                     <View android:id="@+id/color_preview_pb" android:layout_width="28dp" android:layout_height="28dp" android:layout_alignParentEnd="true" android:layout_centerVertical="true"/>
                 </RelativeLayout>
-
-                <RelativeLayout android:id="@+id/color_picker_best_segment" android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingVertical="8dp" android:layout_marginTop="8dp" android:background="?attr/selectableItemBackground" android:clickable="true">
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Best Segment" android:textAppearance="?attr/textAppearanceBodyLarge" android:layout_centerVertical="true"/>
+                <RelativeLayout android:id="@+id/color_picker_best_segment" android:background="?attr/selectableItemBackground" android:clickable="true" android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingVertical="8dp" android:layout_marginTop="8dp">
+                    <TextView android:text="Best Segment" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textAppearance="?attr/textAppearanceBodyLarge" android:layout_centerVertical="true"/>
                     <View android:id="@+id/color_preview_best_segment" android:layout_width="28dp" android:layout_height="28dp" android:layout_alignParentEnd="true" android:layout_centerVertical="true"/>
                 </RelativeLayout>
+            </LinearLayout>
+
+            <!-- NOVA SEÇÃO DE FONTE -->
+            <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content">
+                <TextView style="?attr/textAppearanceTitleMedium" android:text="Font" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="8dp" android:textColor="?attr/colorPrimary"/>
+                <LinearLayout
+                    android:id="@+id/button_choose_font"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:paddingVertical="12dp"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Timer font"
+                        android:textAppearance="?attr/textAppearanceBodyLarge" />
+                    <TextView
+                        android:id="@+id/text_font_name"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Default monospace font"
+                        android:textAppearance="?attr/textAppearanceBodyMedium"
+                        android:textColor="?attr/colorOnSurfaceVariant"/>
+                </LinearLayout>
+                <TextView
+                    android:id="@+id/button_reset_font"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Reset to default font"
+                    android:paddingVertical="12dp"
+                    android:textAppearance="?attr/textAppearanceBodyLarge"
+                    android:textColor="?attr/colorPrimary"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"/>
             </LinearLayout>
 
         </LinearLayout>
