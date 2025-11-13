@@ -114,7 +114,6 @@ class TimerService : Service() {
         binding.deltaText.visibility = if (showDelta) View.VISIBLE else View.GONE
         binding.splitNameText.visibility = if (prefs.getBoolean("show_current_split", true)) View.VISIBLE else View.GONE
         
-        // Remove o background do timer
         binding.timerRoot.background = null
 
         if (state == TimerState.STOPPED) {
@@ -191,7 +190,12 @@ class TimerService : Service() {
 
     private fun handleLongPress() {
         when (state) {
-            TimerState.RUNNING, TimerState.COUNTDOWN -> resetTimer()
+            TimerState.RUNNING, TimerState.COUNTDOWN -> {
+                // Bug SOB Corrigido: Resetar no meio da run não salva best segments.
+                // Apenas reseta o timer. A lógica de salvar só acontece no final.
+                resetTimer()
+                Toast.makeText(this, "Run discarded", Toast.LENGTH_SHORT).show()
+            }
             TimerState.FINISHED -> showPbDialog()
             else -> {}
         }
@@ -201,7 +205,6 @@ class TimerService : Service() {
         val cat = category ?: run { stopSelf(); return }
         val isNewPb = cat.personalBest == 0L || timeInMilliseconds < cat.personalBest
 
-        // Delega a exibição do diálogo para a DialogActivity
         val dialogIntent = Intent(this, DialogActivity::class.java).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
             putExtra("IS_NEW_PB", isNewPb)
@@ -244,10 +247,13 @@ class TimerService : Service() {
         currentRunSegmentTimes.add(currentSegmentTime)
 
         val currentSplit = splits[currentSplitIndex]
+        
+        // Bug SOB Corrigido:
+        // A lógica de atualizar o 'bestSegmentTime' foi movida para a DialogActivity,
+        // e só é chamada quando o usuário clica em "Salvar".
+        // Aqui, apenas verificamos se é um novo "gold" para fins de cor.
         if (currentSplit.bestSegmentTime == 0L || currentSegmentTime < currentSplit.bestSegmentTime) {
             isGoldSplit = true
-            currentSplit.bestSegmentTime = currentSegmentTime
-            dataManager.saveGames()
         }
 
         val comparisonTime = when (compareAgainst) {
@@ -410,13 +416,13 @@ class TimerService : Service() {
         }.build()
         
     private fun getCloseServicePendingIntent() : PendingIntent {
-        val stopIntent = Intent(this, TimerService::class.java).apply {
-            action = ACTION_CLOSE_SERVICE
-        }
         val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         } else {
             PendingIntent.FLAG_UPDATE_CURRENT
+        }
+        val stopIntent = Intent(this, TimerService::class.java).apply {
+            action = ACTION_CLOSE_SERVICE
         }
         return PendingIntent.getService(this, 1, stopIntent, flags)
     }
