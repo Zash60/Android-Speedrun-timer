@@ -53,12 +53,36 @@
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:textAppearance="?attr/textAppearanceBodyLarge" android:text="Split name size"/>
                 <Spinner android:id="@+id/spinner_split_name_size" android:layout_width="match_parent" android:layout_height="48dp"/>
             </LinearLayout>
-
-            <!-- Seção de Cores (simplificada) -->
-            <!-- A lógica de seleção de cor será feita no Kotlin -->
+            
+            <!-- NOVA Seção de Cores -->
             <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content">
-                <TextView style="?attr/textAppearanceTitleMedium" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="8dp" android:textColor="?attr/colorPrimary" android:text="Timer Colors" />
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Em breve: Seletor de cores visual. Por enquanto, as cores são padrão." android:textAppearance="?attr/textAppearanceBodyMedium" android:textColor="?attr/colorOnSurfaceVariant"/>
+                <TextView style="?attr/textAppearanceTitleMedium" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="16dp" android:textColor="?attr/colorPrimary" android:text="Timer Colors" />
+                
+                <!-- Item de Cor -->
+                <RelativeLayout android:id="@+id/color_picker_neutral" android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingVertical="8dp" android:background="?attr/selectableItemBackground" android:clickable="true">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Neutral Text" android:textAppearance="?attr/textAppearanceBodyLarge" android:layout_centerVertical="true"/>
+                    <View android:id="@+id/color_preview_neutral" android:layout_width="28dp" android:layout_height="28dp" android:layout_alignParentEnd="true" android:layout_centerVertical="true"/>
+                </RelativeLayout>
+                
+                <RelativeLayout android:id="@+id/color_picker_ahead" android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingVertical="8dp" android:layout_marginTop="8dp" android:background="?attr/selectableItemBackground" android:clickable="true">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Ahead" android:textAppearance="?attr/textAppearanceBodyLarge" android:layout_centerVertical="true"/>
+                    <View android:id="@+id/color_preview_ahead" android:layout_width="28dp" android:layout_height="28dp" android:layout_alignParentEnd="true" android:layout_centerVertical="true"/>
+                </RelativeLayout>
+
+                <RelativeLayout android:id="@+id/color_picker_behind" android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingVertical="8dp" android:layout_marginTop="8dp" android:background="?attr/selectableItemBackground" android:clickable="true">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Behind" android:textAppearance="?attr/textAppearanceBodyLarge" android:layout_centerVertical="true"/>
+                    <View android:id="@+id/color_preview_behind" android:layout_width="28dp" android:layout_height="28dp" android:layout_alignParentEnd="true" android:layout_centerVertical="true"/>
+                </RelativeLayout>
+
+                <RelativeLayout android:id="@+id/color_picker_pb" android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingVertical="8dp" android:layout_marginTop="8dp" android:background="?attr/selectableItemBackground" android:clickable="true">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="New PB" android:textAppearance="?attr/textAppearanceBodyLarge" android:layout_centerVertical="true"/>
+                    <View android:id="@+id/color_preview_pb" android:layout_width="28dp" android:layout_height="28dp" android:layout_alignParentEnd="true" android:layout_centerVertical="true"/>
+                </RelativeLayout>
+
+                <RelativeLayout android:id="@+id/color_picker_best_segment" android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingVertical="8dp" android:layout_marginTop="8dp" android:background="?attr/selectableItemBackground" android:clickable="true">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Best Segment" android:textAppearance="?attr/textAppearanceBodyLarge" android:layout_centerVertical="true"/>
+                    <View android:id="@+id/color_preview_best_segment" android:layout_width="28dp" android:layout_height="28dp" android:layout_alignParentEnd="true" android:layout_centerVertical="true"/>
+                </RelativeLayout>
             </LinearLayout>
 
         </LinearLayout>
