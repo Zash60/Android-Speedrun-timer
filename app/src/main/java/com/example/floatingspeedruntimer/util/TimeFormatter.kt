@@ -1,24 +1,33 @@
 package com.example.floatingspeedruntimer.util
+
 import android.widget.EditText
 import java.util.Locale
 import kotlin.math.abs
+
 data class TimeParts(val hours: Long, val minutes: Long, val seconds: Long, val milliseconds: Long)
+
 object TimeFormatter {
-    fun formatTime(millis: Long, showMillis: Boolean): String {
-        return format(abs(millis), showMillis)
+
+    fun formatTime(millis: Long, showMillis: Boolean, alwaysShowMinutes: Boolean = true): String {
+        return format(abs(millis), showMillis, alwaysShowMinutes)
     }
+
     fun formatCountdownTime(millis: Long, showMillis: Boolean): String {
-        return format(millis, showMillis)
+        return format(millis, showMillis, true)
     }
-    private fun format(millis: Long, showMillis: Boolean): String {
+
+    private fun format(millis: Long, showMillis: Boolean, alwaysShowMinutes: Boolean): String {
         if (millis <= 0L) {
-             return "0:00" + if(showMillis) ".00" else ""
+             return if (alwaysShowMinutes) "0:00" + if(showMillis) ".00" else ""
+             else "0" + if(showMillis) ".00" else ""
         }
+
         val totalSeconds = millis / 1000
         val minutes = totalSeconds / 60
         val seconds = totalSeconds % 60
         val hundredths = (millis % 1000) / 10
-        return if (minutes > 0) {
+
+        return if (alwaysShowMinutes || minutes > 0) {
             if (showMillis) String.format(Locale.US, "%d:%02d.%02d", minutes, seconds, hundredths)
             else String.format(Locale.US, "%d:%02d", minutes, seconds)
         } else {
@@ -26,6 +35,7 @@ object TimeFormatter {
             else String.format(Locale.US, "%d", seconds)
         }
     }
+    
     fun toHMS(millis: Long): TimeParts {
         if (millis <= 0) return TimeParts(0,0,0,0)
         val hours = millis / 3600000
@@ -34,6 +44,7 @@ object TimeFormatter {
         val milliseconds = millis % 1000
         return TimeParts(hours, minutes, seconds, milliseconds)
     }
+
     fun parseTime(hrs: EditText, min: EditText, sec: EditText, ms: EditText): Long {
         val h = hrs.text.toString().toLongOrNull() ?: 0
         val m = min.text.toString().toLongOrNull() ?: 0
