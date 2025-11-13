@@ -10,7 +10,7 @@ android {
         minSdk = 26
         targetSdk = 34
         versionCode = 34
-        versionName = "9.1"
+        versionName = "9.2" // Incrementando a versão
     }
     buildFeatures {
         viewBinding = true
@@ -28,8 +28,8 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("com.google.android.material:material:1.11.0")
     implementation("com.google.code.gson:gson:2.10.1")
-    implementation("com.github.dhaval2404:colorpicker:2.3")
-
-    // CORREÇÃO: Readicionando a dependência necessária para PreferenceManager
     implementation("androidx.preference:preference-ktx:1.2.1")
+
+    // CORREÇÃO: Voltando para a biblioteca de seletor de cores original e funcional
+    implementation("com.github.QuadFlask:colorpicker:0.0.13")
 }
