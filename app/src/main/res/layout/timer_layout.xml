@@ -4,8 +4,12 @@
     android:id="@+id/timer_root"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
-    android:padding="8dp"
-    android:background="#80000000">
+    android:paddingStart="12dp"
+    android:paddingTop="4dp"
+    android:paddingEnd="12dp"
+    android:paddingBottom="4dp">
+    <!-- android:background foi removido -->
+
     <TextView
         android:id="@+id/timer_text"
         android:layout_width="wrap_content"
@@ -21,6 +25,7 @@
         android:shadowRadius="3"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
+
     <TextView
         android:id="@+id/delta_text"
         android:layout_width="wrap_content"
@@ -37,6 +42,7 @@
         android:shadowRadius="3"
         app:layout_constraintEnd_toStartOf="@id/timer_text"
         app:layout_constraintBaseline_toBaselineOf="@id/timer_text"/>
+
     <TextView
         android:id="@+id/split_name_text"
         android:layout_width="0dp"
@@ -53,4 +59,5 @@
         app:layout_constraintTop_toBottomOf="@id/timer_text"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>
