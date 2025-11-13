@@ -8,15 +8,19 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.PixelFormat
+import android.graphics.Typeface
+import android.net.Uri
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.os.SystemClock
+import android.util.Log
 import android.util.TypedValue
 import android.view.*
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
+import androidx.core.content.edit
 import androidx.preference.PreferenceManager
 import com.example.floatingspeedruntimer.R
 import com.example.floatingspeedruntimer.data.Category
@@ -116,6 +120,8 @@ class TimerService : Service() {
         
         binding.timerRoot.background = null
 
+        loadCustomFont()
+
         if (state == TimerState.STOPPED) {
              if (countdownMillis > 0) {
                 binding.timerText.text = "-" + TimeFormatter.formatCountdownTime(countdownMillis, prefs.getBoolean("show_milliseconds", true))
@@ -128,6 +134,31 @@ class TimerService : Service() {
             }
         }
         updateRunningTimerColor()
+    }
+
+    private fun loadCustomFont() {
+        val prefs = PreferenceManager.getDefaultSharedPreferences(this)
+        val fontUriString = prefs.getString("custom_font_uri", null)
+        var customTypeface: Typeface? = null
+
+        if (fontUriString != null) {
+            try {
+                val uri = Uri.parse(fontUriString)
+                val pfd = contentResolver.openFileDescriptor(uri, "r")
+                if (pfd != null) {
+                    customTypeface = Typeface.Builder(pfd.fileDescriptor).build()
+                    pfd.close()
+                }
+            } catch (e: Exception) {
+                Log.e("TimerService", "Failed to load custom font", e)
+                prefs.edit { remove("custom_font_uri") }
+            }
+        }
+
+        val typeface = customTypeface ?: Typeface.MONOSPACE
+        binding.timerText.typeface = typeface
+        binding.deltaText.typeface = typeface
+        binding.splitNameText.typeface = typeface
     }
 
     private fun createFloatingView() {
@@ -191,8 +222,6 @@ class TimerService : Service() {
     private fun handleLongPress() {
         when (state) {
             TimerState.RUNNING, TimerState.COUNTDOWN -> {
-                // Bug SOB Corrigido: Resetar no meio da run não salva best segments.
-                // Apenas reseta o timer. A lógica de salvar só acontece no final.
                 resetTimer()
                 Toast.makeText(this, "Run discarded", Toast.LENGTH_SHORT).show()
             }
@@ -248,10 +277,6 @@ class TimerService : Service() {
 
         val currentSplit = splits[currentSplitIndex]
         
-        // Bug SOB Corrigido:
-        // A lógica de atualizar o 'bestSegmentTime' foi movida para a DialogActivity,
-        // e só é chamada quando o usuário clica em "Salvar".
-        // Aqui, apenas verificamos se é um novo "gold" para fins de cor.
         if (currentSplit.bestSegmentTime == 0L || currentSegmentTime < currentSplit.bestSegmentTime) {
             isGoldSplit = true
         }
