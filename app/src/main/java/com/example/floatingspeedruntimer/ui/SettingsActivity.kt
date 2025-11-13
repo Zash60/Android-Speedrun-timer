@@ -1,5 +1,6 @@
 package com.example.floatingspeedruntimer.ui
 
+import android.content.DialogInterface
 import android.content.Intent
 import android.content.SharedPreferences
 import android.graphics.Color
@@ -12,8 +13,10 @@ import androidx.core.content.edit
 import androidx.preference.PreferenceManager
 import com.example.floatingspeedruntimer.databinding.ActivitySettingsBinding
 import com.example.floatingspeedruntimer.service.TimerService
-import com.github.dhaval2404.colorpicker.ColorPickerDialog
-import com.github.dhaval2404.colorpicker.model.ColorShape
+import com.flask.colorpicker.ColorPickerView
+import com.flask.colorpicker.OnColorSelectedListener
+import com.flask.colorpicker.builder.ColorPickerClickListener
+import com.flask.colorpicker.builder.ColorPickerDialogBuilder
 
 class SettingsActivity : AppCompatActivity() {
 
@@ -56,15 +59,19 @@ class SettingsActivity : AppCompatActivity() {
         val defaultColor = getDefaultColor(key)
         val currentColor = prefs.getInt(key, defaultColor)
 
-        ColorPickerDialog
-            .Builder(this)
+        ColorPickerDialogBuilder
+            .with(this)
             .setTitle(title)
-            .setColorShape(ColorShape.SQAURE)
-            .setDefaultColor(currentColor)
-            .setColorListener { color, _ ->
-                prefs.edit { putInt(key, color) }
+            .initialColor(currentColor)
+            .wheelType(ColorPickerView.WHEEL_TYPE.FLOWER)
+            .density(12)
+            .showAlphaSlider(true) // Permite ajustar a transparência
+            .setPositiveButton("Select", ColorPickerClickListener { dialog, selectedColor, allColors ->
+                prefs.edit { putInt(key, selectedColor) }
                 updateColorPreview(key)
-            }
+            })
+            .setNegativeButton("Cancel", null)
+            .build()
             .show()
     }
 
