@@ -26,4 +26,5 @@ dependencies {
     implementation("com.google.code.gson:gson:2.10.1")
     implementation("androidx.preference:preference-ktx:1.2.1")
     implementation("com.github.QuadFlask:colorpicker:0.0.13")
+    implementation("com.quickbirdstudios:opencv:4.5.3.0")
 }
