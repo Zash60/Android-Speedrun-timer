@@ -76,6 +76,13 @@ class TimerService : Service() {
                 if (::binding.isInitialized) { loadSettings() }
                 return START_STICKY
             }
+            // NOVA ACTION para ser chamada pelo AutosplitterService
+            ACTION_SPLIT_FROM_AUTOSPLITTER -> {
+                if (state == TimerState.RUNNING) {
+                    split()
+                }
+                return START_STICKY
+            }
         }
         
         if (intent?.hasExtra("GAME_NAME") == true) {
@@ -269,7 +276,8 @@ class TimerService : Service() {
     }
 
     private fun split() {
-        if (currentSplitIndex < 0 || splits.isEmpty()) { stopTimer(); return }
+        if (state != TimerState.RUNNING || currentSplitIndex < 0 || splits.isEmpty()) return
+        
         isGoldSplit = false
         val lastTotalTime = currentRunSegmentTimes.sum()
         val currentSegmentTime = timeInMilliseconds - lastTotalTime
@@ -307,6 +315,9 @@ class TimerService : Service() {
     }
 
     private fun resetTimer() {
+        // Para o serviço de autosplit se estiver rodando
+        stopService(Intent(this, AutosplitterService::class.java))
+        
         timerHandler.removeCallbacks(updateTimerThread)
         timerHandler.removeCallbacks(updateCountdownThread)
         startTime = 0L; timeInMilliseconds = 0L
@@ -454,6 +465,7 @@ class TimerService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
+        stopService(Intent(this, AutosplitterService::class.java))
         timerHandler.removeCallbacksAndMessages(null)
         if (::binding.isInitialized && binding.root.isAttachedToWindow) {
             windowManager.removeView(binding.root)
@@ -466,5 +478,6 @@ class TimerService : Service() {
         const val ACTION_CLOSE_SERVICE = "ACTION_CLOSE_SERVICE"
         const val ACTION_RESET_TIMER = "ACTION_RESET_TIMER"
         const val ACTION_SETTINGS_UPDATED = "ACTION_SETTINGS_UPDATED"
+        const val ACTION_SPLIT_FROM_AUTOSPLITTER = "ACTION_SPLIT_FROM_AUTOSPLITTER"
     }
 }
