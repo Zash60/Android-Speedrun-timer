@@ -10,7 +10,7 @@ android {
         minSdk = 26
         targetSdk = 34
         versionCode = 34
-        versionName = "10.0" // Versão incrementada
+        versionName = "11.0" // Nova versão com Autosplitter
     }
     buildFeatures { viewBinding = true }
     compileOptions {
@@ -26,5 +26,7 @@ dependencies {
     implementation("com.google.code.gson:gson:2.10.1")
     implementation("androidx.preference:preference-ktx:1.2.1")
     implementation("com.github.QuadFlask:colorpicker:0.0.13")
+
+    // NOVA DEPENDÊNCIA para Visão Computacional (OpenCV)
     implementation("com.quickbirdstudios:opencv:4.5.3.0")
 }
