@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.PixelFormat
+import android.graphics.Rect
 import android.hardware.display.DisplayManager
 import android.hardware.display.VirtualDisplay
 import android.media.ImageReader
@@ -17,6 +18,7 @@ import android.os.Looper
 import android.util.DisplayMetrics
 import android.view.WindowManager
 import com.example.floatingspeedruntimer.data.DataManager
+import com.example.floatingspeedruntimer.data.RectData
 import com.example.floatingspeedruntimer.data.Split
 import org.opencv.android.OpenCVLoader
 import org.opencv.android.Utils
@@ -38,9 +40,12 @@ class AutosplitterService : Service() {
     private var currentSplitIndex = 0
     private var isRunning = false
 
-    // Configurações
-    private val CAPTURE_INTERVAL_MS = 500L // Captura a tela 2x por segundo
-    private val MATCH_THRESHOLD = 0.9 // 90% de confiança para considerar uma imagem encontrada
+    // Configurações vindas da Category
+    private lateinit var captureRegion: Rect
+    private var matchThreshold: Double = 0.9
+
+    // O loop pode ser mais rápido agora
+    private val CAPTURE_INTERVAL_MS = 250L // 4x por segundo
 
     override fun onCreate() {
         super.onCreate()
@@ -64,10 +69,19 @@ class AutosplitterService : Service() {
 
         val dataManager = DataManager.getInstance(this)
         val category = dataManager.findCategoryByName(dataManager.findGameByName(gameName), categoryName)
+
+        // Carrega a configuração do AutoSplitter da categoria
+        val regionData = category?.autoSplitterCaptureRegion
+        if (category == null || !category.autoSplitterEnabled || regionData == null) {
+            stopSelf()
+            return START_NOT_STICKY
+        }
         
-        splitsWithImages = category?.splits?.filter { !it.autoSplitImagePath.isNullOrEmpty() } ?: emptyList()
+        captureRegion = Rect(regionData.left, regionData.top, regionData.right, regionData.bottom)
+        matchThreshold = category.autoSplitterThreshold
+        splitsWithImages = category.splits.filter { !it.autoSplitImagePath.isNullOrEmpty() }
+        
         if (splitsWithImages.isEmpty()) {
-            // Nenhuma imagem configurada, o serviço não tem o que fazer
             stopSelf()
             return START_NOT_STICKY
         }
@@ -87,6 +101,7 @@ class AutosplitterService : Service() {
         val height = metrics.heightPixels
         val density = metrics.densityDpi
 
+        // O ImageReader ainda precisa capturar a tela inteira
         imageReader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 2)
         virtualDisplay = mediaProjection?.createVirtualDisplay(
             "ScreenCapture",
@@ -110,56 +125,61 @@ class AutosplitterService : Service() {
 
     private fun performCheck() {
         if (currentSplitIndex >= splitsWithImages.size) {
-            // Todos os splits foram encontrados, serviço pode parar
             stopSelf()
             return
         }
 
-        val screenshotBitmap = getScreenshot() ?: return
+        val fullScreenshot = getScreenshot() ?: return
+        
+        // Corta o screenshot para a região de captura definida, com segurança
+        val croppedBitmap = try {
+            Bitmap.createBitmap(
+                fullScreenshot,
+                captureRegion.left,
+                captureRegion.top,
+                captureRegion.width(),
+                captureRegion.height()
+            )
+        } catch (e: IllegalArgumentException) {
+            // A região de captura está fora dos limites da tela, para o serviço
+            stopSelf()
+            return
+        } finally {
+            fullScreenshot.recycle()
+        }
+        
         val targetImagePath = splitsWithImages[currentSplitIndex].autoSplitImagePath!!
-
-        // Converte o screenshot para o formato do OpenCV
-        val screenMat = Mat()
-        Utils.bitmapToMat(screenshotBitmap, screenMat)
-        screenshotBitmap.recycle()
-        Imgproc.cvtColor(screenMat, screenMat, Imgproc.COLOR_RGBA2RGB)
-
-        // Carrega a imagem alvo do split
         val templateMat = Imgcodecs.imread(targetImagePath)
+
         if (templateMat.empty()) {
-            // Imagem não encontrada, talvez pular para o próximo?
             return
         }
 
-        // Garante que a imagem da tela seja maior que a imagem do template
+        val screenMat = Mat()
+        Utils.bitmapToMat(croppedBitmap, screenMat)
+        croppedBitmap.recycle()
+        Imgproc.cvtColor(screenMat, screenMat, Imgproc.COLOR_RGBA2RGB)
+
         if (screenMat.rows() < templateMat.rows() || screenMat.cols() < templateMat.cols()) {
             screenMat.release()
             templateMat.release()
             return
         }
-
-        // Realiza o reconhecimento (Template Matching)
-        val resultWidth = screenMat.cols() - templateMat.cols() + 1
-        val resultHeight = screenMat.rows() - templateMat.rows() + 1
-        val result = Mat(resultHeight, resultWidth, CvType.CV_32FC1)
+        
+        val result = Mat()
         Imgproc.matchTemplate(screenMat, templateMat, result, Imgproc.TM_CCOEFF_NORMED)
-
-        // Encontra o nível de confiança
         val minMaxResult = Core.minMaxLoc(result)
-        val confidence = minMaxResult.maxVal
 
-        if (confidence >= MATCH_THRESHOLD) {
-            // IMAGEM ENCONTRADA!
+        if (minMaxResult.maxVal >= matchThreshold) {
             triggerSplit()
             currentSplitIndex++
         }
 
-        // Libera a memória
         screenMat.release()
         templateMat.release()
         result.release()
     }
-
+    
     private fun getScreenshot(): Bitmap? {
         val image = imageReader?.acquireLatestImage() ?: return null
         val planes = image.planes
@@ -178,7 +198,6 @@ class AutosplitterService : Service() {
     }
 
     private fun triggerSplit() {
-        // Envia um comando para o TimerService fazer o split
         val intent = Intent(this, TimerService::class.java).apply {
             action = TimerService.ACTION_SPLIT_FROM_AUTOSPLITTER
         }
