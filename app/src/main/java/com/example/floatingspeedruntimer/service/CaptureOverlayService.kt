@@ -37,6 +37,9 @@ class CaptureOverlayService : Service() {
     private var virtualDisplay: VirtualDisplay? = null
     private val handler = Handler(Looper.getMainLooper())
 
+    // NOVA PROPRIEDADE para armazenar o nome da categoria
+    private var categoryNameForFile: String = ""
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_SHOW -> {
@@ -49,6 +52,9 @@ class CaptureOverlayService : Service() {
                     intent.getSerializableExtra(EXTRA_INITIAL_RECT) as? RectData
                 }
                 val mode = intent.getStringExtra(EXTRA_MODE)
+
+                // ARMAZENA o nome da categoria na propriedade da classe
+                categoryNameForFile = intent.getStringExtra(EXTRA_CATEGORY_NAME) ?: "default"
 
                 startMediaProjection(resultCode, data)
                 showOverlay(initialRect, mode, intent.getStringExtra(EXTRA_SPLIT_ID))
@@ -143,19 +149,14 @@ class CaptureOverlayService : Service() {
                     val pixelStride = planes[0].pixelStride
                     val rowStride = planes[0].rowStride
                     val rowPadding = rowStride - pixelStride * width
-                    var bitmap = Bitmap.createBitmap(width + rowPadding / pixelStride, height, Bitmap.Config.ARGB_8888)
+                    val bitmap = Bitmap.createBitmap(width + rowPadding / pixelStride, height, Bitmap.Config.ARGB_8888)
                     bitmap.copyPixelsFromBuffer(buffer)
-                    
-                    // A bitmap pode conter a barra de status, etc. Precisamos cortar.
-                    // Para simplificar, estamos retornando a bitmap inteira.
-                    // Uma implementação mais robusta poderia obter a posição da janela.
                     
                     image.close()
                     onBitmap(bitmap)
                 } else {
                     onBitmap(null)
                 }
-                // Limpa o listener para não ser chamado novamente
                 this.setOnImageAvailableListener(null, null)
             }, handler)
         }
@@ -171,8 +172,8 @@ class CaptureOverlayService : Service() {
     private fun saveBitmapToFile(bitmap: Bitmap, splitId: String): String {
         val dir = File(filesDir, "split_images")
         if (!dir.exists()) dir.mkdirs()
-        // Usa o nome da categoria + nome do split para evitar conflitos
-        val filename = "${intent?.getStringExtra("CATEGORY_NAME")}_${splitId}.png".replace(" ", "_")
+        // CORREÇÃO: Usa a propriedade da classe 'categoryNameForFile' em vez de 'intent'
+        val filename = "${categoryNameForFile}_${splitId}.png".replace(Regex("[^A-Za-z0-9._-]"), "_")
         val file = File(dir, filename)
         FileOutputStream(file).use {
             bitmap.compress(Bitmap.CompressFormat.PNG, 90, it)
@@ -206,7 +207,7 @@ class CaptureOverlayService : Service() {
         const val EXTRA_INITIAL_RECT = "EXTRA_INITIAL_RECT"
         const val EXTRA_MODE = "EXTRA_MODE"
         const val EXTRA_SPLIT_ID = "EXTRA_SPLIT_ID"
-        const val EXTRA_CATEGORY_NAME = "CATEGORY_NAME"
+        const val EXTRA_CATEGORY_NAME = "EXTRA_CATEGORY_NAME"
 
         const val MODE_SET_REGION = "MODE_SET_REGION"
         const val MODE_CAPTURE_SPLIT = "MODE_CAPTURE_SPLIT"
