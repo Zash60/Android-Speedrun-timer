@@ -11,7 +11,7 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.view.LayoutInflater
-import android.view.View // <-- IMPORTAÇÃO CORRIGIDA AQUI
+import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
@@ -123,6 +123,9 @@ class CategoryActivity : AppCompatActivity() {
         dialog.setContentView(sheetBinding.root)
 
         sheetBinding.bottomSheetTitle.text = category.name
+        
+        // Aqui você adicionaria uma nova opção para "Configure Autosplit"
+        // que levaria para a nova tela de configuração.
 
         sheetBinding.optionEditSplits.setOnClickListener {
             val intent = Intent(this, SplitsActivity::class.java).apply {
@@ -192,8 +195,8 @@ class CategoryActivity : AppCompatActivity() {
         }
         startService(timerIntent)
         
-        // 2. Verifica se a categoria tem algum split com imagem configurada
-        if (category.splits.any { !it.autoSplitImagePath.isNullOrEmpty() }) {
+        // 2. Verifica se a categoria tem o autosplitter ativado e configurado
+        if (category.autoSplitterEnabled && category.autoSplitterCaptureRegion != null && category.splits.any { !it.autoSplitImagePath.isNullOrEmpty() }) {
             // 3. Se tiver, pede permissão para capturar a tela e inicia o AutosplitterService
             val mediaProjectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
             mediaProjectionLauncher.launch(mediaProjectionManager.createScreenCaptureIntent())
