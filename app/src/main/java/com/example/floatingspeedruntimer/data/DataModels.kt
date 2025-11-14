@@ -11,13 +11,13 @@ data class Category(
     val splits: MutableList<Split> = mutableListOf(),
     val runHistory: MutableList<Run> = mutableListOf(),
     
-    // NOVOS CAMPOS PARA O AUTOSPLITTER AVANÇADO
+    // CAMPOS PARA O AUTOSPLITTER AVANÇADO
     var autoSplitterEnabled: Boolean = false,
     var autoSplitterThreshold: Double = 0.9, // Valor padrão de 90%
     var autoSplitterCaptureRegion: RectData? = null // Coordenadas do retângulo
 )
 
-// NOVA CLASSE para armazenar as coordenadas do retângulo
+// NOVA CLASSE para armazenar as coordenadas do retângulo de forma serializável
 data class RectData(val left: Int, val top: Int, val right: Int, val bottom: Int) : Serializable
 
 data class Split(
