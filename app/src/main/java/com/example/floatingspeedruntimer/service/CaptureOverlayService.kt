@@ -1,6 +1,9 @@
 package com.example.floatingspeedruntimer.service
 
 import android.app.Activity
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
@@ -20,7 +23,9 @@ import android.util.DisplayMetrics
 import android.view.LayoutInflater
 import android.view.View
 import android.view.WindowManager
+import androidx.core.app.NotificationCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import com.example.floatingspeedruntimer.R
 import com.example.floatingspeedruntimer.data.RectData
 import com.example.floatingspeedruntimer.databinding.OverlayCaptureRegionBinding
 import java.io.File
@@ -37,14 +42,26 @@ class CaptureOverlayService : Service() {
     private var virtualDisplay: VirtualDisplay? = null
     private val handler = Handler(Looper.getMainLooper())
 
-    // NOVA PROPRIEDADE para armazenar o nome da categoria
     private var categoryNameForFile: String = ""
+
+    override fun onCreate() {
+        super.onCreate()
+        createNotificationChannel()
+    }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_SHOW -> {
                 val resultCode = intent.getIntExtra(EXTRA_RESULT_CODE, Activity.RESULT_CANCELED)
                 val data = intent.getParcelableExtra<Intent>(EXTRA_RESULT_DATA)!!
+                
+                // Inicia o serviço em primeiro plano ANTES de usar a MediaProjection
+                val notification = createNotification()
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    startForeground(NOTIFICATION_ID, notification)
+                }
+
+                // O resto da lógica continua aqui
                 val initialRect = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     intent.getSerializableExtra(EXTRA_INITIAL_RECT, RectData::class.java)
                 } else {
@@ -52,8 +69,6 @@ class CaptureOverlayService : Service() {
                     intent.getSerializableExtra(EXTRA_INITIAL_RECT) as? RectData
                 }
                 val mode = intent.getStringExtra(EXTRA_MODE)
-
-                // ARMAZENA o nome da categoria na propriedade da classe
                 categoryNameForFile = intent.getStringExtra(EXTRA_CATEGORY_NAME) ?: "default"
 
                 startMediaProjection(resultCode, data)
@@ -172,7 +187,6 @@ class CaptureOverlayService : Service() {
     private fun saveBitmapToFile(bitmap: Bitmap, splitId: String): String {
         val dir = File(filesDir, "split_images")
         if (!dir.exists()) dir.mkdirs()
-        // CORREÇÃO: Usa a propriedade da classe 'categoryNameForFile' em vez de 'intent'
         val filename = "${categoryNameForFile}_${splitId}.png".replace(Regex("[^A-Za-z0-9._-]"), "_")
         val file = File(dir, filename)
         FileOutputStream(file).use {
@@ -187,6 +201,28 @@ class CaptureOverlayService : Service() {
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
     }
 
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val name = "Capture Service"
+            val descriptionText = "Service for capturing screen regions for autosplitter"
+            val importance = NotificationManager.IMPORTANCE_LOW
+            val channel = NotificationChannel(CHANNEL_ID, name, importance).apply {
+                description = descriptionText
+            }
+            val notificationManager: NotificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.createNotificationChannel(channel)
+        }
+    }
+
+    private fun createNotification(): Notification {
+        return NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle("Autosplitter Configuration")
+            .setContentText("Defining capture region or images.")
+            .setSmallIcon(R.drawable.ic_autosplit)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .build()
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         if (::overlayView.isInitialized && overlayView.isAttachedToWindow) {
@@ -195,11 +231,15 @@ class CaptureOverlayService : Service() {
         virtualDisplay?.release()
         mediaProjection?.stop()
         imageReader?.close()
+        stopForeground(true)
     }
     
     override fun onBind(intent: Intent?): IBinder? = null
 
     companion object {
+        private const val CHANNEL_ID = "CaptureServiceChannel"
+        private const val NOTIFICATION_ID = 2
+        
         const val ACTION_SHOW = "ACTION_SHOW"
         const val ACTION_HIDE = "ACTION_HIDE"
         const val EXTRA_RESULT_CODE = "EXTRA_RESULT_CODE"
