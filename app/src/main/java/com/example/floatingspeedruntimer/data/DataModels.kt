@@ -9,14 +9,21 @@ data class Category(
     var personalBest: Long = 0,
     var runs: Int = 0,
     val splits: MutableList<Split> = mutableListOf(),
-    val runHistory: MutableList<Run> = mutableListOf()
+    val runHistory: MutableList<Run> = mutableListOf(),
+    
+    // NOVOS CAMPOS PARA O AUTOSPLITTER AVANÇADO
+    var autoSplitterEnabled: Boolean = false,
+    var autoSplitterThreshold: Double = 0.9, // Valor padrão de 90%
+    var autoSplitterCaptureRegion: RectData? = null // Coordenadas do retângulo
 )
+
+// NOVA CLASSE para armazenar as coordenadas do retângulo
+data class RectData(val left: Int, val top: Int, val right: Int, val bottom: Int) : Serializable
 
 data class Split(
     var name: String,
     var personalBestTime: Long = 0,
     var bestSegmentTime: Long = 0,
-    // NOVO CAMPO para armazenar o caminho absoluto da imagem do autosplit
     var autoSplitImagePath: String? = null
 )
 
