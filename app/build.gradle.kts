@@ -10,7 +10,7 @@ android {
         minSdk = 26
         targetSdk = 34
         versionCode = 34
-        versionName = "11.0" // Nova versão com Autosplitter
+        versionName = "12.0" // Nova versão com Autosplitter Avançado
     }
     buildFeatures { viewBinding = true }
     compileOptions {
