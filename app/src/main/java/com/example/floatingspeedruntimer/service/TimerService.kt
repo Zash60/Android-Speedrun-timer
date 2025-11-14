@@ -76,7 +76,6 @@ class TimerService : Service() {
                 if (::binding.isInitialized) { loadSettings() }
                 return START_STICKY
             }
-            // NOVA ACTION para ser chamada pelo AutosplitterService
             ACTION_SPLIT_FROM_AUTOSPLITTER -> {
                 if (state == TimerState.RUNNING) {
                     split()
@@ -315,7 +314,6 @@ class TimerService : Service() {
     }
 
     private fun resetTimer() {
-        // Para o serviço de autosplit se estiver rodando
         stopService(Intent(this, AutosplitterService::class.java))
         
         timerHandler.removeCallbacks(updateTimerThread)
