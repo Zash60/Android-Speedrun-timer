@@ -1,14 +1,16 @@
 package com.example.floatingspeedruntimer.ui
 
 import android.Manifest
+import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.media.projection.MediaProjectionManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.view.LayoutInflater
-import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
@@ -21,6 +23,7 @@ import com.example.floatingspeedruntimer.data.Game
 import com.example.floatingspeedruntimer.databinding.ActivityListLayoutBinding
 import com.example.floatingspeedruntimer.databinding.BottomSheetCategoryMenuBinding
 import com.example.floatingspeedruntimer.databinding.DialogAddEditBinding
+import com.example.floatingspeedruntimer.service.AutosplitterService
 import com.example.floatingspeedruntimer.service.TimerService
 import com.google.android.material.bottomsheet.BottomSheetDialog
 
@@ -33,12 +36,7 @@ class CategoryActivity : AppCompatActivity() {
     private var pendingCategoryForTimer: Category? = null
 
     private val notificationPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
-        if (isGranted) {
-            checkOverlayPermissionAndStartTimer()
-        } else {
-            Toast.makeText(this, "Notification permission is needed for the 'Close' button.", Toast.LENGTH_LONG).show()
-            checkOverlayPermissionAndStartTimer() // Proceed anyway
-        }
+        checkOverlayPermissionAndStartTimer()
     }
 
     private val overlayPermissionLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
@@ -48,6 +46,23 @@ class CategoryActivity : AppCompatActivity() {
             Toast.makeText(this, "Overlay permission is required to show the timer.", Toast.LENGTH_LONG).show()
         }
         pendingCategoryForTimer = null
+    }
+
+    private val mediaProjectionLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val intent = Intent(this, AutosplitterService::class.java).apply {
+                action = AutosplitterService.ACTION_START
+                putExtra(AutosplitterService.EXTRA_RESULT_CODE, result.resultCode)
+                putExtra(AutosplitterService.EXTRA_RESULT_DATA, result.data!!)
+                putExtra(AutosplitterService.EXTRA_GAME_NAME, game?.name)
+                putExtra(AutosplitterService.EXTRA_CATEGORY_NAME, pendingCategoryForTimer?.name)
+            }
+            startService(intent)
+        } else {
+            Toast.makeText(this, "Screen capture permission is required for autosplitter to work.", Toast.LENGTH_LONG).show()
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -141,15 +156,12 @@ class CategoryActivity : AppCompatActivity() {
                 ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED -> {
                     checkOverlayPermissionAndStartTimer()
                 }
-                shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS) -> {
-                    notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                }
                 else -> {
                     notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                 }
             }
         } else {
-            checkOverlayPermissionAndStartTimer() // No runtime permission needed for older versions
+            checkOverlayPermissionAndStartTimer()
         }
     }
 
@@ -172,11 +184,21 @@ class CategoryActivity : AppCompatActivity() {
     }
     
     private fun startTimerService(category: Category) {
-        val intent = Intent(this, TimerService::class.java).apply {
+        // 1. Inicia o TimerService normal
+        val timerIntent = Intent(this, TimerService::class.java).apply {
             putExtra("GAME_NAME", game!!.name)
             putExtra("CATEGORY_NAME", category.name)
         }
-        startService(intent)
+        startService(timerIntent)
+        
+        // 2. Verifica se a categoria tem algum split com imagem configurada
+        if (category.splits.any { !it.autoSplitImagePath.isNullOrEmpty() }) {
+            // 3. Se tiver, pede permissão para capturar a tela e inicia o AutosplitterService
+            val mediaProjectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+            mediaProjectionLauncher.launch(mediaProjectionManager.createScreenCaptureIntent())
+        }
+
+        // 4. Fecha a UI principal
         finishAffinity()
     }
 
