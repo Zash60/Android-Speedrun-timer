@@ -123,9 +123,6 @@ class CategoryActivity : AppCompatActivity() {
         dialog.setContentView(sheetBinding.root)
 
         sheetBinding.bottomSheetTitle.text = category.name
-        
-        // Aqui você adicionaria uma nova opção para "Configure Autosplit"
-        // que levaria para a nova tela de configuração.
 
         sheetBinding.optionEditSplits.setOnClickListener {
             val intent = Intent(this, SplitsActivity::class.java).apply {
@@ -135,6 +132,7 @@ class CategoryActivity : AppCompatActivity() {
             startActivity(intent)
             dialog.dismiss()
         }
+
         sheetBinding.optionViewHistory.setOnClickListener {
             val intent = Intent(this, RunHistoryActivity::class.java).apply {
                 putExtra("GAME_NAME", game!!.name)
@@ -143,14 +141,26 @@ class CategoryActivity : AppCompatActivity() {
             startActivity(intent)
             dialog.dismiss()
         }
+
+        sheetBinding.optionConfigureAutosplit.setOnClickListener {
+            val intent = Intent(this, AutoSplitConfigActivity::class.java).apply {
+                putExtra("GAME_NAME", game!!.name)
+                putExtra("CATEGORY_NAME", category.name)
+            }
+            startActivity(intent)
+            dialog.dismiss()
+        }
+
         sheetBinding.optionEditName.setOnClickListener {
             showAddEditDialog(category)
             dialog.dismiss()
         }
+        
         sheetBinding.optionDelete.setOnClickListener {
             showDeleteConfirmationDialog(category)
             dialog.dismiss()
         }
+
         dialog.show()
     }
 
