@@ -44,6 +44,15 @@ class CaptureOverlayService : Service() {
 
     private var categoryNameForFile: String = ""
 
+    // Callback para lidar com o ciclo de vida da MediaProjection
+    private val mediaProjectionCallback = object : MediaProjection.Callback() {
+        override fun onStop() {
+            super.onStop()
+            // A captura foi interrompida externamente, então o serviço deve parar.
+            stopSelf()
+        }
+    }
+
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
@@ -55,13 +64,11 @@ class CaptureOverlayService : Service() {
                 val resultCode = intent.getIntExtra(EXTRA_RESULT_CODE, Activity.RESULT_CANCELED)
                 val data = intent.getParcelableExtra<Intent>(EXTRA_RESULT_DATA)!!
                 
-                // Inicia o serviço em primeiro plano ANTES de usar a MediaProjection
                 val notification = createNotification()
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     startForeground(NOTIFICATION_ID, notification)
                 }
 
-                // O resto da lógica continua aqui
                 val initialRect = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     intent.getSerializableExtra(EXTRA_INITIAL_RECT, RectData::class.java)
                 } else {
@@ -82,6 +89,11 @@ class CaptureOverlayService : Service() {
     private fun startMediaProjection(resultCode: Int, data: Intent) {
         val mediaProjectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
         mediaProjection = mediaProjectionManager.getMediaProjection(resultCode, data)
+
+        // Registra o callback imediatamente após criar a MediaProjection
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            mediaProjection?.registerCallback(mediaProjectionCallback, handler)
+        }
     }
 
     private fun showOverlay(initialRectData: RectData?, mode: String?, splitId: String?) {
@@ -142,6 +154,9 @@ class CaptureOverlayService : Service() {
                 croppedBitmap.recycle()
                 
                 sendBroadcast(ACTION_IMAGE_CAPTURED, "path" to path, "splitId" to splitId)
+                stopSelf()
+            } else {
+                // Falha na captura, parar o serviço
                 stopSelf()
             }
         }
@@ -229,6 +244,9 @@ class CaptureOverlayService : Service() {
             windowManager.removeView(overlayView)
         }
         virtualDisplay?.release()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            mediaProjection?.unregisterCallback(mediaProjectionCallback)
+        }
         mediaProjection?.stop()
         imageReader?.close()
         stopForeground(true)
