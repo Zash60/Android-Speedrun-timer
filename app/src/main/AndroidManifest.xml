@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Permissões necessárias para serviços em primeiro plano e captura de tela -->
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" tools:ignore="SystemPermissionUsage" />
-    
+    <!-- Permissões Essenciais -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+
+    <!-- Permissões para Serviços em Primeiro Plano -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
 
     <application
         android:allowBackup="true"
@@ -18,30 +18,44 @@
         android:theme="@style/Theme.App"
         android:enableOnBackInvokedCallback="true">
 
-        <activity android:name=".ui.MainActivity" android:exported="true">
+        <activity
+            android:name=".ui.MainActivity"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        
+
         <activity android:name=".ui.CategoryActivity" android:parentActivityName=".ui.MainActivity" />
         <activity android:name=".ui.SplitsActivity" android:parentActivityName=".ui.CategoryActivity" />
         <activity android:name=".ui.RunHistoryActivity" android:parentActivityName=".ui.CategoryActivity" />
         <activity android:name=".ui.SettingsActivity" android:label="Settings" android:parentActivityName=".ui.MainActivity"/>
-        <activity android:name=".ui.AutoSplitConfigActivity" android:parentActivityName=".ui.CategoryActivity"/>
-        <activity android:name=".ui.DialogActivity" android:theme="@style/Theme.App.Dialog.Transparent" android:taskAffinity="" android:excludeFromRecents="true" />
+        <activity
+            android:name=".ui.AutoSplitConfigActivity"
+            android:parentActivityName=".ui.CategoryActivity"
+            android:screenOrientation="landscape"
+            android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation"/>
+        <activity
+            android:name=".ui.DialogActivity"
+            android:theme="@style/Theme.App.Dialog.Transparent"
+            android:taskAffinity=""
+            android:excludeFromRecents="true" />
 
-        <!-- Serviço do Timer Principal -->
-        <service 
-            android:name=".service.TimerService" 
+        <service
+            android:name=".service.TimerService"
             android:foregroundServiceType="specialUse">
-            <property 
-                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" 
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="This app uses a foreground service to display a persistent timer overlay for speedrunning." />
         </service>
+        
+        <service
+            android:name=".service.AutosplitterService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="mediaProjection" />
 
-        <!-- Serviço de Captura de Tela (CORRIGIDO) -->
         <service
             android:name=".service.CaptureOverlayService"
             android:enabled="true"
