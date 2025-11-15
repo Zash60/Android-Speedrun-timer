@@ -24,6 +24,7 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.WindowManager
+import android.widget.Toast // <-- IMPORTAÇÃO CORRIGIDA AQUI
 import androidx.core.app.NotificationCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.example.floatingspeedruntimer.R
@@ -196,9 +197,7 @@ class CaptureOverlayService : Service() {
                 } else {
                     onBitmap(null)
                 }
-                // Limpa o listener para não ser chamado novamente
                 this.setOnImageAvailableListener(null, null)
-                // É crucial liberar o virtual display depois de pegar a imagem
                 virtualDisplay?.release()
                 virtualDisplay = null
             }, handler)
@@ -215,7 +214,6 @@ class CaptureOverlayService : Service() {
     private fun saveBitmapToFile(bitmap: Bitmap, splitId: String): String {
         val dir = File(filesDir, "split_images")
         if (!dir.exists()) dir.mkdirs()
-        // Usa o nome da categoria + nome do split para evitar conflitos e sanitiza o nome do arquivo
         val filename = "${categoryNameForFile}_${splitId}.png".replace(Regex("[^A-Za-z0-9._-]"), "_")
         val file = File(dir, filename)
         FileOutputStream(file).use {
