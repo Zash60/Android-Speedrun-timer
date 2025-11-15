@@ -20,6 +20,7 @@ import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.util.DisplayMetrics
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.WindowManager
@@ -41,14 +42,13 @@ class CaptureOverlayService : Service() {
     private var imageReader: ImageReader? = null
     private var virtualDisplay: VirtualDisplay? = null
     private val handler = Handler(Looper.getMainLooper())
-
     private var categoryNameForFile: String = ""
+    private val TAG = "CaptureOverlayService"
 
-    // Callback para lidar com o ciclo de vida da MediaProjection
     private val mediaProjectionCallback = object : MediaProjection.Callback() {
         override fun onStop() {
             super.onStop()
-            // A captura foi interrompida externamente, então o serviço deve parar.
+            Log.w(TAG, "MediaProjection was stopped externally. Stopping service.")
             stopSelf()
         }
     }
@@ -80,6 +80,7 @@ class CaptureOverlayService : Service() {
 
                 startMediaProjection(resultCode, data)
                 showOverlay(initialRect, mode, intent.getStringExtra(EXTRA_SPLIT_ID))
+                Log.i(TAG, "Overlay service started in mode: $mode")
             }
             ACTION_HIDE -> stopSelf()
         }
@@ -89,11 +90,7 @@ class CaptureOverlayService : Service() {
     private fun startMediaProjection(resultCode: Int, data: Intent) {
         val mediaProjectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
         mediaProjection = mediaProjectionManager.getMediaProjection(resultCode, data)
-
-        // Registra o callback imediatamente após criar a MediaProjection
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            mediaProjection?.registerCallback(mediaProjectionCallback, handler)
-        }
+        mediaProjection?.registerCallback(mediaProjectionCallback, handler)
     }
 
     private fun showOverlay(initialRectData: RectData?, mode: String?, splitId: String?) {
@@ -142,24 +139,36 @@ class CaptureOverlayService : Service() {
     }
 
     private fun captureAndSaveSplitImage(splitId: String) {
-        takeScreenshot { fullBitmap ->
-            if (fullBitmap != null) {
-                val rect = binding.resizableRectangle.getRectCoordinates()
-                val croppedBitmap = Bitmap.createBitmap(
-                    fullBitmap, rect.left.toInt(), rect.top.toInt(), rect.width().toInt(), rect.height().toInt()
-                )
-                fullBitmap.recycle()
-                
-                val path = saveBitmapToFile(croppedBitmap, splitId)
-                croppedBitmap.recycle()
-                
-                sendBroadcast(ACTION_IMAGE_CAPTURED, "path" to path, "splitId" to splitId)
-                stopSelf()
-            } else {
-                // Falha na captura, parar o serviço
-                stopSelf()
+        // Esconde a UI de controle para não aparecer no screenshot
+        handler.post { binding.controlPanel.visibility = View.GONE }
+        // Dá um pequeno delay para a UI desaparecer antes de capturar
+        handler.postDelayed({
+            takeScreenshot { fullBitmap ->
+                if (fullBitmap != null) {
+                    val rect = binding.resizableRectangle.getRectCoordinates()
+                    try {
+                        val croppedBitmap = Bitmap.createBitmap(
+                            fullBitmap, rect.left.toInt(), rect.top.toInt(), rect.width().toInt(), rect.height().toInt()
+                        )
+                        fullBitmap.recycle()
+                        
+                        val path = saveBitmapToFile(croppedBitmap, splitId)
+                        croppedBitmap.recycle()
+                        
+                        sendBroadcast(ACTION_IMAGE_CAPTURED, "path" to path, "splitId" to splitId)
+                    } catch (e: IllegalArgumentException) {
+                        Log.e(TAG, "Error cropping bitmap. Region might be out of bounds.", e)
+                        Toast.makeText(this, "Error: Capture region is invalid.", Toast.LENGTH_LONG).show()
+                    } finally {
+                        stopSelf()
+                    }
+                } else {
+                    Log.e(TAG, "Failed to capture screenshot.")
+                    handler.post { binding.controlPanel.visibility = View.VISIBLE } // Mostra os controles novamente se falhar
+                    stopSelf()
+                }
             }
-        }
+        }, 100) // 100ms de delay
     }
     
     private fun takeScreenshot(onBitmap: (Bitmap?) -> Unit) {
@@ -172,7 +181,7 @@ class CaptureOverlayService : Service() {
 
         imageReader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 1).apply {
             setOnImageAvailableListener({ reader ->
-                val image = reader.acquireLatestImage()
+                val image = try { reader.acquireLatestImage() } catch (e: Exception) { null }
                 if (image != null) {
                     val planes = image.planes
                     val buffer = planes[0].buffer
@@ -187,7 +196,11 @@ class CaptureOverlayService : Service() {
                 } else {
                     onBitmap(null)
                 }
+                // Limpa o listener para não ser chamado novamente
                 this.setOnImageAvailableListener(null, null)
+                // É crucial liberar o virtual display depois de pegar a imagem
+                virtualDisplay?.release()
+                virtualDisplay = null
             }, handler)
         }
 
@@ -202,6 +215,7 @@ class CaptureOverlayService : Service() {
     private fun saveBitmapToFile(bitmap: Bitmap, splitId: String): String {
         val dir = File(filesDir, "split_images")
         if (!dir.exists()) dir.mkdirs()
+        // Usa o nome da categoria + nome do split para evitar conflitos e sanitiza o nome do arquivo
         val filename = "${categoryNameForFile}_${splitId}.png".replace(Regex("[^A-Za-z0-9._-]"), "_")
         val file = File(dir, filename)
         FileOutputStream(file).use {
@@ -221,9 +235,7 @@ class CaptureOverlayService : Service() {
             val name = "Capture Service"
             val descriptionText = "Service for capturing screen regions for autosplitter"
             val importance = NotificationManager.IMPORTANCE_LOW
-            val channel = NotificationChannel(CHANNEL_ID, name, importance).apply {
-                description = descriptionText
-            }
+            val channel = NotificationChannel(CHANNEL_ID, name, importance)
             val notificationManager: NotificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.createNotificationChannel(channel)
         }
@@ -240,13 +252,12 @@ class CaptureOverlayService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
+        Log.i(TAG, "CaptureOverlayService is being destroyed.")
         if (::overlayView.isInitialized && overlayView.isAttachedToWindow) {
             windowManager.removeView(overlayView)
         }
         virtualDisplay?.release()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            mediaProjection?.unregisterCallback(mediaProjectionCallback)
-        }
+        mediaProjection?.unregisterCallback(mediaProjectionCallback)
         mediaProjection?.stop()
         imageReader?.close()
         stopForeground(true)
