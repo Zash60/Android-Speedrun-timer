@@ -16,9 +16,9 @@ import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.util.DisplayMetrics
+import android.util.Log
 import android.view.WindowManager
 import com.example.floatingspeedruntimer.data.DataManager
-import com.example.floatingspeedruntimer.data.RectData
 import com.example.floatingspeedruntimer.data.Split
 import org.opencv.android.OpenCVLoader
 import org.opencv.android.Utils
@@ -46,11 +46,14 @@ class AutosplitterService : Service() {
 
     // O loop pode ser mais rápido agora
     private val CAPTURE_INTERVAL_MS = 250L // 4x por segundo
+    
+    // TAG para logging
+    private val TAG = "AutosplitterService"
 
     override fun onCreate() {
         super.onCreate()
         if (!OpenCVLoader.initDebug()) {
-            // Lidar com falha ao carregar OpenCV
+            Log.e(TAG, "OpenCV failed to load. Stopping service.")
             stopSelf()
         }
         mediaProjectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
@@ -58,6 +61,7 @@ class AutosplitterService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP) {
+            Log.d(TAG, "Received stop action.")
             stopSelf()
             return START_NOT_STICKY
         }
@@ -70,9 +74,9 @@ class AutosplitterService : Service() {
         val dataManager = DataManager.getInstance(this)
         val category = dataManager.findCategoryByName(dataManager.findGameByName(gameName), categoryName)
 
-        // Carrega a configuração do AutoSplitter da categoria
         val regionData = category?.autoSplitterCaptureRegion
         if (category == null || !category.autoSplitterEnabled || regionData == null) {
+            Log.w(TAG, "Autosplitter is not enabled or configured for this category. Stopping service.")
             stopSelf()
             return START_NOT_STICKY
         }
@@ -82,6 +86,7 @@ class AutosplitterService : Service() {
         splitsWithImages = category.splits.filter { !it.autoSplitImagePath.isNullOrEmpty() }
         
         if (splitsWithImages.isEmpty()) {
+            Log.w(TAG, "No split images configured for this category. Stopping service.")
             stopSelf()
             return START_NOT_STICKY
         }
@@ -90,6 +95,7 @@ class AutosplitterService : Service() {
         setupImageReader()
         startCaptureLoop()
 
+        Log.i(TAG, "Autosplitter service started successfully.")
         return START_STICKY
     }
 
@@ -101,7 +107,6 @@ class AutosplitterService : Service() {
         val height = metrics.heightPixels
         val density = metrics.densityDpi
 
-        // O ImageReader ainda precisa capturar a tela inteira
         imageReader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 2)
         virtualDisplay = mediaProjection?.createVirtualDisplay(
             "ScreenCapture",
@@ -125,13 +130,13 @@ class AutosplitterService : Service() {
 
     private fun performCheck() {
         if (currentSplitIndex >= splitsWithImages.size) {
+            Log.d(TAG, "All splits found. Stopping service.")
             stopSelf()
             return
         }
 
         val fullScreenshot = getScreenshot() ?: return
         
-        // Corta o screenshot para a região de captura definida, com segurança
         val croppedBitmap = try {
             Bitmap.createBitmap(
                 fullScreenshot,
@@ -141,7 +146,7 @@ class AutosplitterService : Service() {
                 captureRegion.height()
             )
         } catch (e: IllegalArgumentException) {
-            // A região de captura está fora dos limites da tela, para o serviço
+            Log.e(TAG, "Capture region is out of bounds. Stopping service.", e)
             stopSelf()
             return
         } finally {
@@ -152,6 +157,7 @@ class AutosplitterService : Service() {
         val templateMat = Imgcodecs.imread(targetImagePath)
 
         if (templateMat.empty()) {
+            Log.w(TAG, "Template image not found at path: $targetImagePath")
             return
         }
 
@@ -161,6 +167,7 @@ class AutosplitterService : Service() {
         Imgproc.cvtColor(screenMat, screenMat, Imgproc.COLOR_RGBA2RGB)
 
         if (screenMat.rows() < templateMat.rows() || screenMat.cols() < templateMat.cols()) {
+            Log.w(TAG, "Cropped screen area is smaller than the template image.")
             screenMat.release()
             templateMat.release()
             return
@@ -169,8 +176,13 @@ class AutosplitterService : Service() {
         val result = Mat()
         Imgproc.matchTemplate(screenMat, templateMat, result, Imgproc.TM_CCOEFF_NORMED)
         val minMaxResult = Core.minMaxLoc(result)
+        val confidence = minMaxResult.maxVal
 
-        if (minMaxResult.maxVal >= matchThreshold) {
+        // LOG DE DEBURAÇÃO CRÍTICO:
+        Log.d(TAG, "Checking for split '${splitsWithImages[currentSplitIndex].name}'. Confidence: $confidence (Threshold: $matchThreshold)")
+
+        if (confidence >= matchThreshold) {
+            Log.i(TAG, "MATCH FOUND for split '${splitsWithImages[currentSplitIndex].name}'! Confidence: $confidence. Triggering split.")
             triggerSplit()
             currentSplitIndex++
         }
@@ -210,6 +222,7 @@ class AutosplitterService : Service() {
         handler.removeCallbacksAndMessages(null)
         virtualDisplay?.release()
         mediaProjection?.stop()
+        Log.i(TAG, "Autosplitter service stopped.")
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
