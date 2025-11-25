@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:padding="8dp"
+    android:gravity="center_vertical"
+    android:background="?android:attr/selectableItemBackground">
+
+    <!-- Capa do Jogo -->
+    <ImageView
+        android:id="@+id/img_game_cover"
+        android:layout_width="60dp"
+        android:layout_height="80dp"
+        android:scaleType="fitCenter"
+        android:background="#333333"
+        android:contentDescription="Game Cover"/>
+
+    <TextView
+        android:id="@+id/text_game_name"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:text="Super Mario 64"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:textColor="?attr/colorOnSurface"/>
+</LinearLayout>
