@@ -26,5 +26,9 @@ dependencies {
     implementation("com.google.code.gson:gson:2.10.1")
     implementation("androidx.preference:preference-ktx:1.2.1")
     implementation("com.github.QuadFlask:colorpicker:0.0.13")
+    implementation("com.github.bumptech.glide:glide:4.16.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
 
 }
