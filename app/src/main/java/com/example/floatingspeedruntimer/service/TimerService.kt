@@ -76,12 +76,6 @@ class TimerService : Service() {
                 if (::binding.isInitialized) { loadSettings() }
                 return START_STICKY
             }
-            ACTION_SPLIT_FROM_AUTOSPLITTER -> {
-                if (state == TimerState.RUNNING) {
-                    split()
-                }
-                return START_STICKY
-            }
         }
         
         if (intent?.hasExtra("GAME_NAME") == true) {
@@ -314,8 +308,6 @@ class TimerService : Service() {
     }
 
     private fun resetTimer() {
-        stopService(Intent(this, AutosplitterService::class.java))
-        
         timerHandler.removeCallbacks(updateTimerThread)
         timerHandler.removeCallbacks(updateCountdownThread)
         startTime = 0L; timeInMilliseconds = 0L
@@ -463,7 +455,6 @@ class TimerService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
-        stopService(Intent(this, AutosplitterService::class.java))
         timerHandler.removeCallbacksAndMessages(null)
         if (::binding.isInitialized && binding.root.isAttachedToWindow) {
             windowManager.removeView(binding.root)
@@ -476,6 +467,5 @@ class TimerService : Service() {
         const val ACTION_CLOSE_SERVICE = "ACTION_CLOSE_SERVICE"
         const val ACTION_RESET_TIMER = "ACTION_RESET_TIMER"
         const val ACTION_SETTINGS_UPDATED = "ACTION_SETTINGS_UPDATED"
-        const val ACTION_SPLIT_FROM_AUTOSPLITTER = "ACTION_SPLIT_FROM_AUTOSPLITTER"
     }
 }
