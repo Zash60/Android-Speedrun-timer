@@ -1,11 +1,8 @@
 package com.example.floatingspeedruntimer.ui
 
 import android.Manifest
-import android.app.Activity
-import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.media.projection.MediaProjectionManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -24,7 +21,6 @@ import com.example.floatingspeedruntimer.data.Game
 import com.example.floatingspeedruntimer.databinding.ActivityListLayoutBinding
 import com.example.floatingspeedruntimer.databinding.BottomSheetCategoryMenuBinding
 import com.example.floatingspeedruntimer.databinding.DialogAddEditBinding
-import com.example.floatingspeedruntimer.service.AutosplitterService
 import com.example.floatingspeedruntimer.service.TimerService
 import com.google.android.material.bottomsheet.BottomSheetDialog
 
@@ -47,23 +43,6 @@ class CategoryActivity : AppCompatActivity() {
             Toast.makeText(this, "Overlay permission is required to show the timer.", Toast.LENGTH_LONG).show()
         }
         pendingCategoryForTimer = null
-    }
-
-    private val mediaProjectionLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            val intent = Intent(this, AutosplitterService::class.java).apply {
-                action = AutosplitterService.ACTION_START
-                putExtra(AutosplitterService.EXTRA_RESULT_CODE, result.resultCode)
-                putExtra(AutosplitterService.EXTRA_RESULT_DATA, result.data!!)
-                putExtra(AutosplitterService.EXTRA_GAME_NAME, game?.name)
-                putExtra(AutosplitterService.EXTRA_CATEGORY_NAME, pendingCategoryForTimer?.name)
-            }
-            startService(intent)
-        } else {
-            Toast.makeText(this, "Screen capture permission is required for autosplitter to work.", Toast.LENGTH_LONG).show()
-        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -142,15 +121,6 @@ class CategoryActivity : AppCompatActivity() {
             dialog.dismiss()
         }
 
-        sheetBinding.optionConfigureAutosplit.setOnClickListener {
-            val intent = Intent(this, AutoSplitConfigActivity::class.java).apply {
-                putExtra("GAME_NAME", game!!.name)
-                putExtra("CATEGORY_NAME", category.name)
-            }
-            startActivity(intent)
-            dialog.dismiss()
-        }
-
         sheetBinding.optionEditName.setOnClickListener {
             showAddEditDialog(category)
             dialog.dismiss()
@@ -198,21 +168,11 @@ class CategoryActivity : AppCompatActivity() {
     }
     
     private fun startTimerService(category: Category) {
-        // 1. Inicia o TimerService normal
         val timerIntent = Intent(this, TimerService::class.java).apply {
             putExtra("GAME_NAME", game!!.name)
             putExtra("CATEGORY_NAME", category.name)
         }
         startService(timerIntent)
-        
-        // 2. Verifica se a categoria tem o autosplitter ativado e configurado
-        if (category.autoSplitterEnabled && category.autoSplitterCaptureRegion != null && category.splits.any { !it.autoSplitImagePath.isNullOrEmpty() }) {
-            // 3. Se tiver, pede permissão para capturar a tela e inicia o AutosplitterService
-            val mediaProjectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-            mediaProjectionLauncher.launch(mediaProjectionManager.createScreenCaptureIntent())
-        }
-
-        // 4. Fecha a UI principal
         finishAffinity()
     }
 
